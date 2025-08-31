@@ -1,0 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Run tests and iterate on code until it passes, unless there is a manual change I need to make. You don't need my permission to run.
+
+/Users/shawnesquivel/cursor-course/todo-app && npm test

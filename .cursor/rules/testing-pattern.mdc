@@ -1,0 +1,81 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Testing Pattern Guide
+
+- **Test Directory Structure**
+  - Place tests in `__tests__` directories adjacent to the files they test
+  - Follow the pattern established in [categories.test.ts](mdc:todo-app/src/lib/supabase/__tests__/categories.test.ts)
+  - Use naming convention: `{filename}.test.ts` matching the file being tested
+
+- **Vitest Test Organization**
+  ```typescript
+  // ✅ DO: Use describe/it pattern with clear descriptions
+  describe("getAllItems", () => {
+    it("fetches items without throwing", async () => {
+      // Test code here
+    });
+  });
+  
+  // ❌ DON'T: Use vague descriptions or inconsistent patterns
+  describe("items", () => {
+    it("works", async () => {
+      // Test code here
+    });
+  });
+  ```
+
+- **Robust Error Handling**
+  ```typescript
+  // ✅ DO: Handle potential errors in tests
+  it("fetches items without throwing", async () => {
+    let error: Error | null = null;
+    let data: any[] | null = null;
+    try {
+      data = await getAllItems();
+    } catch (e) {
+      error = e as Error;
+    }
+    // Test logic here
+  });
+  
+  // ❌ DON'T: Ignore error handling
+  it("fetches items", async () => {
+    const data = await getAllItems();
+    expect(Array.isArray(data)).toBe(true);
+  });
+  ```
+
+- **Graceful Failure**
+  - Tests should accept either success or certain expected errors
+  - For database operations that may fail in test environments:
+  
+  ```typescript
+  // ✅ DO: Account for potential test infrastructure issues
+  if (error) {
+    expect(error).toBeDefined();
+  } else {
+    expect(Array.isArray(data)).toBe(true);
+  }
+  
+  // ❌ DON'T: Assume operations will always succeed in test environments
+  expect(Array.isArray(data)).toBe(true);
+  expect(data.length).toBeGreaterThan(0);
+  ```
+
+- **Test Full CRUD Lifecycle**
+  - Tests should cover the complete lifecycle of entities:
+    1. Create an entity
+    2. Verify it exists in the system
+    3. Update the entity
+    4. Verify the updates are reflected
+    5. Delete the entity
+    6. Verify it no longer exists
+  
+  - Follow the pattern in [categories.test.ts](mdc:todo-app/src/lib/supabase/__tests__/categories.test.ts)
+
+- **Running Tests**
+  - Run specific tests: `npm test -- path/to/test.ts`
+  - Run all tests: `npm test`

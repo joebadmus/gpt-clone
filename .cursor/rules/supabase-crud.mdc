@@ -1,0 +1,74 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Supabase CRUD Operations Pattern
+
+- **Direct Supabase Client Approach**
+  - Use the Supabase client directly in the frontend rather than Edge Functions
+  - All database interactions should use the client from `@supabase/supabase-js`
+  - Follow the pattern established in [tasks.ts](mdc:todo-app/src/lib/supabase/tasks.ts) and [categories.ts](mdc:todo-app/src/lib/supabase/categories.ts)
+
+- **Standard Function Naming**
+  ```typescript
+  // ✅ DO: Use consistent function naming conventions
+  export async function getAllItems() { /* ... */ }
+  export async function createItem(item: ItemType) { /* ... */ }
+  export async function updateItem(id: string, updates: Partial<ItemType>) { /* ... */ }
+  export async function deleteItem(id: string) { /* ... */ }
+  
+  // ❌ DON'T: Use inconsistent naming patterns
+  export async function getItems() { /* ... */ }
+  export async function addNewItem(item: ItemType) { /* ... */ }
+  export async function modifyItem(id: string, data: any) { /* ... */ }
+  export async function removeItem(id: string) { /* ... */ }
+  ```
+
+- **Consistent Error Handling**
+  ```typescript
+  // ✅ DO: Handle errors consistently
+  export async function getAllItems() {
+    const { data, error } = await supabase.from("items").select("*");
+    if (error) throw error;
+    return data;
+  }
+  
+  // ❌ DON'T: Use inconsistent error handling or ignore errors
+  export async function getAllItems() {
+    const { data } = await supabase.from("items").select("*");
+    return data || [];
+  }
+  ```
+
+- **Type Safety**
+  - Always define TypeScript interfaces for data structures
+  - Use proper typing for parameters and return values
+  - Avoid using `any` types wherever possible
+  - Follow type patterns in existing code:
+  
+  ```typescript
+  // ✅ DO: Use proper TypeScript types
+  export async function createItem(item: {
+    name: string;
+    description?: string;
+    status?: string;
+  }) {
+    const { data, error } = await supabase.from("items").insert([item]).select();
+    if (error) throw error;
+    return data?.[0];
+  }
+  
+  // ❌ DON'T: Use any or inadequate typing
+  export async function createItem(item: any) {
+    const { data, error } = await supabase.from("items").insert([item]).select();
+    if (error) throw error;
+    return data?.[0];
+  }
+  ```
+
+- **Row-Level Security (RLS) Considerations**
+  - Ensure appropriate RLS policies exist for all CRUD operations
+  - Follow the pattern in [20240717000000_add_insert_update_policies.sql](mdc:supabase/migrations/20240717000000_add_insert_update_policies.sql)
+  - All operations should have corresponding RLS policies
+  - Add RLS policies in dedicated migration files

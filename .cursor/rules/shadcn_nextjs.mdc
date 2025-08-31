@@ -1,0 +1,115 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+- **Use Tailwind CSS v3.x with shadcn UI**
+  - shadcn UI components are designed for Tailwind CSS v3, not v4
+  - Install with: `npm install tailwindcss@3 postcss autoprefixer -D`
+  - If using React 19, install shadcn components with: `npx shadcn@latest add [component] --force`
+
+- **Required globals.css structure**
+  ```css
+  @tailwind base;
+  @tailwind components;
+  @tailwind utilities;
+  
+  @layer base {
+    :root {
+      --background: 0 0% 100%;
+      --foreground: 0 0% 3.9%;
+      /* Other color variables... */
+      --radius: 0.5rem;
+    }
+    
+    .dark {
+      --background: 0 0% 3.9%;
+      --foreground: 0 0% 98%;
+      /* Dark mode variables... */
+    }
+    
+    * {
+      @apply border-border;
+    }
+    body {
+      @apply bg-background text-foreground;
+    }
+  }
+  ```
+
+- **Required tailwind.config.js structure**
+  ```js
+  /** @type {import('tailwindcss').Config} */
+  module.exports = {
+    darkMode: ["class"],
+    content: [
+      "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+      "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+      "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    ],
+    theme: {
+      container: {
+        center: true,
+        padding: "2rem",
+        screens: {
+          "2xl": "1400px",
+        },
+      },
+      extend: {
+        colors: {
+          border: "hsl(var(--border))",
+          input: "hsl(var(--input))",
+          ring: "hsl(var(--ring))",
+          background: "hsl(var(--background))",
+          foreground: "hsl(var(--foreground))",
+          primary: {
+            DEFAULT: "hsl(var(--primary))",
+            foreground: "hsl(var(--primary-foreground))",
+          },
+          /* Other color definitions... */
+        },
+        borderRadius: {
+          lg: "var(--radius)",
+          md: "calc(var(--radius) - 2px)",
+          sm: "calc(var(--radius) - 4px)",
+        },
+        keyframes: {
+          "accordion-down": {
+            from: { height: 0 },
+            to: { height: "var(--radix-accordion-content-height)" },
+          },
+          "accordion-up": {
+            from: { height: "var(--radix-accordion-content-height)" },
+            to: { height: 0 },
+          },
+        },
+        animation: {
+          "accordion-down": "accordion-down 0.2s ease-out",
+          "accordion-up": "accordion-up 0.2s ease-out",
+        },
+      },
+    },
+    plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
+  }
+  ```
+
+- **Required Dependencies**
+  - ✅ DO: Install these key dependencies:
+    ```bash
+    npm install tailwindcss@3 postcss autoprefixer -D
+    npm install tailwindcss-animate -D
+    npm install @tailwindcss/typography -D
+    ```
+  
+  - ❌ DON'T: Use Tailwind CSS v4 with shadcn components as it causes compatibility issues
+
+- **Initializing shadcn UI**
+  - Initialize with the right configuration: `npx shadcn@latest init`
+  - Use `--force` flag with React 19: `npx shadcn@latest init --force`
+  - Add components: `npx shadcn@latest add [component-name]`
+
+- **Troubleshooting Tips**
+  - If components aren't styled properly, check that Tailwind CSS is v3.x
+  - Verify CSS variables in globals.css follow the proper hsl format
+  - Ensure tailwind.config.js includes all required shadcn theme settings
+  - Check that all required plugins are installed and configured

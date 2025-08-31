@@ -1,0 +1,103 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# UI CRUD Integration Pattern
+
+- **Client Component Architecture**
+  - Use "use client" directive for components that interact with Supabase
+  - Follow the pattern established in [page.tsx](mdc:todo-app/src/app/categories/page.tsx)
+  - Structure UI components to match the CRUD operations
+
+- **State Management Pattern**
+  ```typescript
+  // ✅ DO: Use React state to manage entity lists and form data
+  const [items, setItems] = useState<Item[]>([]);
+  const [newItem, setNewItem] = useState<NewItem>({ name: "", description: "" });
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // ❌ DON'T: Mix patterns or use inconsistent state management approaches
+  const items = useRef<any[]>([]);
+  let newItem = { name: "", description: "" };
+  ```
+
+- **Fetch Pattern with useEffect**
+  ```typescript
+  // ✅ DO: Use useEffect for data fetching with proper loading and error states
+  useEffect(() => {
+    async function fetchItems() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getAllItems();
+        setItems(data);
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchItems();
+  }, []);
+  
+  // ❌ DON'T: Fetch without handling loading/error states
+  useEffect(() => {
+    getAllItems().then(setItems);
+  }, []);
+  ```
+
+- **CRUD Operation Functions**
+  ```typescript
+  // ✅ DO: Create handler functions for each CRUD operation with error handling
+  const handleCreateItem = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const created = await createItem(newItem);
+      setItems([...items, created]);
+      setNewItem({ name: "", description: "" }); // Reset form
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // ❌ DON'T: Ignore error handling or state updates
+  const handleCreateItem = async () => {
+    await createItem(newItem);
+    const updatedItems = await getAllItems(); // Unnecessary refetch
+    setItems(updatedItems);
+  };
+  ```
+
+- **Form Handling**
+  ```typescript
+  // ✅ DO: Use controlled components with explicit state updates
+  <Input 
+    value={newItem.name}
+    onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+  />
+  
+  // ❌ DON'T: Use uncontrolled components or mutate state directly
+  <input 
+    defaultValue={newItem.name}
+    onChange={(e) => newItem.name = e.target.value}
+  />
+  ```
+
+- **UI Feedback**
+  - Show loading states during operations
+  - Display error messages when operations fail
+  - Provide visual confirmation for successful operations
+  - Use optimistic UI updates when appropriate
+
+- **Component Organization**
+  - Create separate components for different aspects of CRUD:
+    - List components for displaying entities
+    - Form components for creating/editing
+    - Confirmation dialogs for deletion
+  - Include proper TypeScript interfaces for props

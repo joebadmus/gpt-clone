@@ -1,0 +1,98 @@
+---
+description: 
+globs: *.tsx,*.ts
+alwaysApply: false
+---
+- **Co-locate types with components when only used locally**
+  - Define interfaces and types directly in the same file as the component if not reused elsewhere
+  - Example:
+    ```tsx
+    // components/UserProfile.tsx
+    interface ProfileProps {
+      userId: string;
+      onUpdate: (data: UserData) => void;
+    }
+    export default function UserProfile({ userId, onUpdate }: ProfileProps) {
+      // ...
+    }
+    ```
+  - Benefits: Immediate visibility, less file jumping, matches React's component-centric style
+
+- **Centralize shared/global types**
+  - Place types used across multiple files in a dedicated `types/` directory (e.g., `app/src/types/`)
+  - Use barrel exports for easy imports
+  - Example structure:
+    ```text
+    src/
+      types/
+        api.d.ts
+        auth.d.ts
+        index.ts
+    ```
+    ```typescript
+    // types/api.d.ts
+    export interface PaginatedResponse<T> {
+      data: T[];
+      page: number;
+      total: number;
+    }
+    // types/index.ts
+    export * from './api';
+    export * from './auth';
+    ```
+  - Reference: [supabase.ts](mdc:app/src/lib/supabase.ts)
+
+- **Feature-based modularization for large projects**
+  - Store types in `types.ts` within each feature folder for domain-specific logic
+  - Example structure:
+    ```text
+    src/
+      features/
+        dashboard/
+          types.ts
+          components/
+        settings/
+          types.ts
+          components/
+    ```
+  - Keeps domain logic isolated and maintainable
+
+- **Naming conventions**
+  - Use PascalCase for type/interface names (e.g., `UserProfileProps`)
+  - Prefix generics with `T` (e.g., `TResponse`)
+  - Suffix utility types with `Utils` (e.g., `PartialByUtils`)
+
+- **Type quality and safety**
+  - Avoid `any` for type definitions
+    - ❌
+      ```typescript
+      type User = any;
+      ```
+    - ✅
+      ```typescript
+      interface User {
+        id: string;
+        email: string;
+        createdAt: Date;
+      }
+      ```
+  - Prefer interfaces for object shapes, types for unions/utility types
+  - Use explicit types for function signatures and props
+
+- **Tailwind, Next.js, and React integration**
+  - Import types from libraries using `import type` for clarity and tree-shaking
+    - Example:
+      ```typescript
+      import type { Metadata } from "next";
+      import { cva, type VariantProps } from "class-variance-authority";
+      ```
+    - Reference: [layout.tsx](mdc:app/src/app/layout.tsx), [button.tsx](mdc:app/src/components/ui/button.tsx)
+  - Use types to enforce prop correctness in UI components and hooks
+
+- **General guidelines**
+  - Keep types DRY: avoid duplicating type definitions across files
+  - Refactor and centralize types as they become shared
+  - Document complex types with comments
+  - Update or remove outdated types as code evolves
+
+- **See also:** [cursor_rules.mdc](mdc:cursor_rules.mdc), [self_improve.mdc](mdc:self_improve.mdc)

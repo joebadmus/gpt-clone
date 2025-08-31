@@ -1,0 +1,56 @@
+# User Notes
+
+####  What is the main purpose of your project?
+The purpose is to create a GPT-powered chatbot. It will also use the OpenAI API to create images when the feature is toggled.
+
+#### Who are the intended users?
+Anyone who wants to chat with LLMs or generate images.
+
+#### What are the core features or functionalities you want?
+1. Chat - can display messages.
+2. Stream text respones from OpenAI
+3. Toggle image mode
+4. User can start a new chat by clicking "New Chat"
+
+#### Are there any specific technologies, frameworks, or platforms you want to use?
+- NextJS App Directory @NextJS_AppDirectory.md 
+- React/TypeScript - use React official docs.
+- TailwindCSS (general styling) – use Tailwind official docs
+- ShadUI (for re-usable common components)  - use ShadUI official docs
+- OpenAI SDK: @OpenAI_StreamText.md with `gpt-4.1-nano-2025-04-14`
+- OpenAI SDK: @OpenAI_ImageGeneration.md with `gpt-image-1`. Do NOT use Dall-E.
+- Supabase Edge functions (Chat functionality)  @Supabase_EdgeFunctions.md
+- Supabase Database (store chat messages) @Supabase_Migrations_Local.md  @SUPABASE_COMMANDS.md
+
+I want to use Supabase locally with the CLI. The project structure should be follow a logical, maintainable structure that follows best practices.
+- app (nextJS app directory)
+--src
+---app
+----components
+----types
+- supabase (backend)
+--functions
+--migrations
+
+#### Any must-have requirements or constraints (e.g., security, performance, integrations)?
+
+Security is important, but let's work on it at the end, as we just need a simplistic, baseline functionality for now to speed up development. We'll focus on securing API keys later.
+
+Focus on simplistic design for now, just for development and basic styling. We'll focus on it at the end.
+
+#### MVP Simplifications
+Focus on MVP only. You can mention future improvements as a section but do not add it to the planning stage. 
+- No user auth
+- No deployment, CI/CD setup needed.
+- No testing required yet.- No dark mode/light mode.
+- No animations
+- No keyboard shortcuts
+- Do not optimize API calls/performance.
+- Do not need to show past chats
+
+#### Documentation
+Reference documentation at key steps to follow exact syntax requirements
+For each task, ensure that the appropriate software is installed and configured, e.g.,
+- Supabase CLI is installed
+- Docker is installed successfully
+- NextJS (requires NodeJS)

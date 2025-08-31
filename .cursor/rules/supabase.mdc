@@ -1,0 +1,56 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# **Supabase Development Guidelines**
+
+## Core Guidelines
+- Backend uses Supabase Edge Functions
+- Use MCP tool or `npx supabase` for operations
+- Always create new migration files with format `YYYYMMDDHHMMSS_migration_name.sql` instead of editing existing ones
+
+## Command Reference
+- **Migrations**
+  - Create: `npx supabase migration new NAME`
+  - Apply locally: `npx supabase migration up`
+  - Deploy: `npx supabase db push` (only after local testing)
+- **Edge Functions**
+  - Create: `npx supabase functions new NAME`
+  - Test locally: `npx supabase functions serve`
+  - Deploy: `npx supabase functions deploy NAME`
+
+## Development Workflow
+- **Local First, Production Second**
+  - Create and test migrations locally before production
+  - Use health checks to verify database connectivity
+  - Fix all issues in local environment first
+
+- **Migration Best Practices**
+  - Make migrations idempotent (safe to run multiple times)
+  - Always include proper RLS policies
+
+- **RLS Policies Example**
+  ```sql
+  DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE...) THEN
+      EXECUTE 'CREATE POLICY...';
+    END IF;
+  END $$;
+  ```
+
+- **Troubleshooting**
+  1. For "relation does not exist" errors: check migrations were applied
+  2. For permission errors: verify RLS policies
+  3. For database reset: only reset local DB, then re-run migrations
+
+## Communication Protocol
+1. Begin with `[COMMANDS]` when suggesting commands
+2. Always explain your goal in detail before suggesting a command
+3. Review logs and provide education on error interpretation
+4. Note: We don't have psql access
+
+## Project Specific
+- Run commands from the root folder that contains `supabase`
+- Ignore relative import errors in supabase-js
