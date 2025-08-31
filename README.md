@@ -1,61 +1,41 @@
 # Setup Guide (10min)
 
-## Project Setup
-1. Fork the course repository on GitHub [here](0https://github.com/shawnesquivel/cursor-course) 
-
-<img width="1276" height="344" alt="image" src="https://github.com/user-attachments/assets/c4ad6f1d-60bd-4114-a413-d5964fb7d8b2" />
-
-
-<img width="826" height="537" alt="image" src="https://github.com/user-attachments/assets/3bbad450-1a3f-4c71-85e1-5d599d3fe8b3" />
-
-
-
-2. Clone your forked repository
-
-<img width="505" height="412" alt="image" src="https://github.com/user-attachments/assets/436674be-1de1-4b3e-808d-e1accc4b8f65" />
-
-```
-git clone FORKED_REPO_HTTPS_URL
-```
-
-1. Populate ANTHROPIC_API_KEY and OPENAI_API_KEY.
+Populate ANTHROPIC_API_KEY and OPENAI_API_KEY.
 - In the root directory, rename `.env.example` and rename as `.env` 
 
-2. Get your OPENAI_API_KEY
+Get your OPENAI_API_KEY
 - Populate `supabase/functions/.env`
 
+Setup Task Master in MCP settings [Task Master AI](https://github.com/eyaltoledano/claude-task-master?tab=readme-ov-file)
 
-3. Setup Task Master in MCP settings [Task Master AI](https://github.com/eyaltoledano/claude-task-master?tab=readme-ov-file)
-
-4. Go through the Task Master Setup above.
+Go through the Task Master Setup above.
 
 ## Backend Setup
-1. Download Docker according to your system [Docker](https://docs.docker.com/get-started/get-docker/)
+ Download Docker according to your system [Docker](https://docs.docker.com/get-started/get-docker/)
 
-2. Download the Supabase CLI [Supabase CLI Install](https://supabase.com/docs/guides/local-development/cli/getting-started)
+Download the Supabase CLI [Supabase CLI Install](https://supabase.com/docs/guides/local-development/cli/getting-started)
 
-3. Add OpenAI Keys: In the `supabase` folder, rename `supabase/functions/.env.example` and rename as `.env` [Get OpenAI Keys](http://platform.openai.com/account/)
+Add OpenAI Keys: In the `supabase` folder, rename `supabase/functions/.env.example` and rename as `.env` [Get OpenAI Keys](http://platform.openai.com/account/)
 
 
-
-4. Start Supabase
+Start Supabase
 ```
 npx supabase start
 ```
 Note: If you change your `supabase/functions/.env` file locally, then you'll need to restart `npx supabase stop && npx supabase start`
 
-5. Update your NextJS app `.env.local` file
+Update your NextJS app `.env.local` file
 ```
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=ey...
 ```
 
-6. Serve Functions Locally
+Serve Functions Locally
 ```
 npx supabase functions serve --import-map ./supabase/functions/import_map.json
 ```
 
-7.  Call the `hello-world` edge function.
+Call the `hello-world` edge function.
 ```
   curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/hello-world' \
     --header 'Authorization: Bearer SUPABASE_ANON_KEY' \
