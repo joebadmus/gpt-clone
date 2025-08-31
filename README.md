@@ -1,36 +1,3 @@
-# Vibe Coding with Cursor Course
-
-# Course Assets / Contact Me
-[Course Notes](https://shawnesquivel.notion.site/Cursor-Vibe-Coding-Bootcamp-1d123536d7d5800a9682e4f76ca09df2)
-
-[Discord](https://discord.gg/tVAPZfKk8Z)
-
-My Email: shawnesquivel24@gmail.com
-
-My Linkedin: https://www.linkedin.com/in/shawnesquivel
-
-## Udemy Course
-Use Cursor to Vibe Code Full Stack Apps (MCP, NextJS, Supabase)
-
-[Course + Discount Code](https://www.udemy.com/course/cursor-ai-mcp-nextjs-supabase/?couponCode=VIBE-CODE)
-
-![image](https://github.com/user-attachments/assets/31beaa36-a61c-46f3-822f-bad91836b653)
-
-
-
-## Demo
-![image](https://github.com/user-attachments/assets/f889e3ef-deea-4790-85a2-a55c22c08899)
-
-
-
-https://github.com/user-attachments/assets/2c2ada4e-c7ed-4176-be20-0afd63ea9b98
-
-
-
-## Vibe Coding Workflow
-![image](https://github.com/user-attachments/assets/6120ecb6-5be2-4bcb-9b63-7389051621fd)
-
-
 # Setup Guide (10min)
 
 ## Project Setup
