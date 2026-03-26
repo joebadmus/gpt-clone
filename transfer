@@ -1,0 +1,2 @@
+## default     = "protoPayload.methodName=(\"SetIamPolicy\" OR \"google.cloud.bigquery.v2.DatasetService.InsertDataset\" OR \"google.cloud.bigquery.v2.DatasetService.UpdateDataset\" OR \"google.cloud.bigquery.v2.DatasetService.PatchDataset\" OR \"google.cloud.bigquery.v2.TableService.InsertTable\" OR \"google.cloud.bigquery.v2.TableService.UpdateTable\" OR \"google.cloud.bigquery.v2.TableService.PatchTable\")"
+
