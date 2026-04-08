@@ -1,2 +1,2325 @@
 ## default     = "protoPayload.methodName=(\"SetIamPolicy\" OR \"google.cloud.bigquery.v2.DatasetService.InsertDataset\" OR \"google.cloud.bigquery.v2.DatasetService.UpdateDataset\" OR \"google.cloud.bigquery.v2.DatasetService.PatchDataset\" OR \"google.cloud.bigquery.v2.TableService.InsertTable\" OR \"google.cloud.bigquery.v2.TableService.UpdateTable\" OR \"google.cloud.bigquery.v2.TableService.PatchTable\")"
 
+"""
+Overwatch IAM Processor Cloud Function
+
+This Cloud Function processes IAM policy change notifications from Cloud Logging
+via Pub/Sub and automatically removes individual email assignments while preserving
+group-based IAM bindings.
+
+PRD Requirements:
+- Parse log messages from pub/sub
+- Identify individual email ID bindings
+- Remove individual email bindings (preserve groups ending in @googlegroups.com or @[domain].com)
+- Log remediation actions
+- Execute within 30 seconds of IAM change
+- No false positives (preserve service accounts and groups)
+"""
+
+from enum import Enum
+from functools import wraps
+from typing import Any, Dict, List, Optional
+from datetime import datetime
+import random
+import time
+import base64
+import json
+import logging
+import os
+import sys
+
+# Environment variables - Load early for configuration
+PROJECT_ID = os.getenv('PROJECT_ID')
+PUBSUB_SUBSCRIPTION = os.getenv('PUBSUB_SUBSCRIPTION')
+BIGQUERY_DATASET = os.getenv('BIGQUERY_DATASET')
+BIGQUERY_TABLE = os.getenv('BIGQUERY_TABLE')
+
+# Performance optimization settings from environment
+PERFORMANCE_MODE = os.getenv('PERFORMANCE_MODE', 'standard')
+MAX_RETRY_ATTEMPTS = int(os.getenv('MAX_RETRY_ATTEMPTS', '3'))
+
+# Import other required modules
+
+# Error handling and retry configuration
+
+
+class RetryableError(Exception):
+    """Base class for errors that should trigger retries"""
+    pass
+
+
+class CircuitBreakerError(Exception):
+    """Error thrown when circuit breaker is open"""
+    pass
+
+
+class RetryConfig:
+    """Configuration for retry logic"""
+
+    def __init__(self, max_attempts: int = 3, base_delay: float = 1.0,
+                 max_delay: float = 60.0, exponential_base: float = 2.0,
+                 jitter: bool = True):
+        self.max_attempts = max_attempts
+        self.base_delay = base_delay
+        self.max_delay = max_delay
+        self.exponential_base = exponential_base
+        self.jitter = jitter
+
+
+def get_optimized_retry_config() -> RetryConfig:
+    """Get retry configuration optimized based on performance mode."""
+    if PERFORMANCE_MODE == 'optimized':
+        return RetryConfig(
+            max_attempts=MAX_RETRY_ATTEMPTS,
+            base_delay=0.5,  # Faster initial retry
+            max_delay=30.0,   # Lower max delay for quicker completion
+            exponential_base=1.5,  # Less aggressive backoff
+            jitter=True
+        )
+    else:
+        return RetryConfig(
+            max_attempts=MAX_RETRY_ATTEMPTS,
+            base_delay=1.0,
+            max_delay=60.0,
+            exponential_base=2.0,
+            jitter=True
+        )
+
+
+class CircuitBreaker:
+    """Circuit breaker implementation for API calls"""
+
+    def __init__(self, failure_threshold: int = 5, timeout: float = 60.0):
+        self.failure_threshold = failure_threshold
+        self.timeout = timeout
+        self.failure_count = 0
+        self.last_failure_time = None
+        self.state = "CLOSED"  # CLOSED, OPEN, HALF_OPEN
+
+    def call(self, func, *args, **kwargs):
+        """Execute function through circuit breaker"""
+        if self.state == "OPEN":
+            if time.time() - self.last_failure_time < self.timeout:
+                raise CircuitBreakerError(
+                    f"Circuit breaker is OPEN, failing fast")
+            else:
+                self.state = "HALF_OPEN"
+
+        try:
+            result = func(*args, **kwargs)
+            if self.state == "HALF_OPEN":
+                self.state = "CLOSED"
+                self.failure_count = 0
+            return result
+        except Exception as e:
+            self.failure_count += 1
+            self.last_failure_time = time.time()
+
+            if self.failure_count >= self.failure_threshold:
+                self.state = "OPEN"
+
+            raise e
+
+
+def with_retry_and_circuit_breaker(retry_config: RetryConfig = None, circuit_breaker: CircuitBreaker = None):
+    """Decorator to add retry logic and circuit breaker to functions"""
+    if not retry_config:
+        retry_config = RetryConfig()
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            attempt = 0
+            last_exception = None
+
+            while attempt < retry_config.max_attempts:
+                try:
+                    if circuit_breaker:
+                        return circuit_breaker.call(func, *args, **kwargs)
+                    else:
+                        return func(*args, **kwargs)
+
+                except CircuitBreakerError as e:
+                    logger.error(
+                        f"Circuit breaker preventing call to {func.__name__}: {e}")
+                    raise e
+
+                except Exception as e:
+                    attempt += 1
+                    last_exception = e
+
+                    # Determine if error is retryable
+                    if not is_retryable_error(e):
+                        logger.error(
+                            f"Non-retryable error in {func.__name__}: {e}")
+                        raise e
+
+                    if attempt >= retry_config.max_attempts:
+                        logger.error(
+                            f"Max retry attempts ({retry_config.max_attempts}) exceeded for {func.__name__}")
+                        break
+
+                    # Calculate delay with exponential backoff
+                    delay = min(
+                        retry_config.base_delay *
+                        (retry_config.exponential_base ** (attempt - 1)),
+                        retry_config.max_delay
+                    )
+
+                    # Add jitter to prevent thundering herd
+                    if retry_config.jitter:
+                        delay += random.uniform(0, delay * 0.1)
+
+                    logger.warning(
+                        f"Attempt {attempt} failed for {func.__name__}: {e}. Retrying in {delay:.2f}s...")
+                    time.sleep(delay)
+
+            # All retries exhausted
+            raise last_exception
+
+        return wrapper
+    return decorator
+
+
+def is_retryable_error(error: Exception) -> bool:
+    """Determine if an error should trigger a retry"""
+    # Handle GCP-specific errors
+    if gcp_exceptions and isinstance(error, gcp_exceptions.GoogleAPIError):
+        # Retryable HTTP status codes
+        retryable_status_codes = {
+            408,  # Request Timeout
+            429,  # Too Many Requests (Rate Limiting)
+            500,  # Internal Server Error
+            502,  # Bad Gateway
+            503,  # Service Unavailable
+            504,  # Gateway Timeout
+        }
+
+        if hasattr(error, 'code') and error.code in retryable_status_codes:
+            return True
+
+        # Check error message for known retryable conditions
+        error_message = str(error).lower()
+        retryable_messages = [
+            'timeout',
+            'deadline exceeded',
+            'temporarily unavailable',
+            'rate limit',
+            'quota exceeded',
+            'service unavailable',
+            'connection reset',
+            'connection refused'
+        ]
+
+        return any(msg in error_message for msg in retryable_messages)
+
+    # Handle generic network/connection errors
+    if isinstance(error, (ConnectionError, TimeoutError)):
+        return True
+
+    # Handle import errors (when libraries are not available)
+    if isinstance(error, ImportError):
+        return False
+
+    # Default to non-retryable for unknown errors
+    return False
+
+
+# Initialize circuit breakers with performance optimization
+def get_optimized_circuit_breaker() -> CircuitBreaker:
+    """Get circuit breaker optimized for current performance mode."""
+    if PERFORMANCE_MODE == 'optimized':
+        # Faster recovery
+        return CircuitBreaker(failure_threshold=2, timeout=20.0)
+    else:
+        # Standard settings
+        return CircuitBreaker(failure_threshold=3, timeout=30.0)
+
+
+_resource_manager_circuit_breaker = get_optimized_circuit_breaker()
+_bigquery_circuit_breaker = get_optimized_circuit_breaker()
+
+# GCP Client Libraries
+try:
+    from google.cloud import resourcemanager
+    from google.cloud import bigquery
+    from google.api_core import exceptions as gcp_exceptions
+    import google.auth
+
+    # Test basic imports work
+    resourcemanager_available = True
+    bigquery_available = True
+    
+    # Log successful imports for debugging
+    logger = logging.getLogger(__name__)
+    logger.info("✓ Successfully imported GCP client libraries")
+    logger.info(f"  resourcemanager version: {resourcemanager.__version__}")
+    logger.info(f"  bigquery version: {bigquery.__version__}")
+
+except ImportError as e:
+    logger = logging.getLogger(__name__)
+    logger.error(f"Failed to import GCP client libraries: {e}")
+    logger.error("This may be a version compatibility issue.")
+    logger.error("Function will continue but GCP operations will fail.")
+    
+    # Continue execution to allow local testing
+    resourcemanager = None
+    bigquery = None
+    gcp_exceptions = None
+    resourcemanager_available = False
+    bigquery_available = False
+
+except Exception as e:
+    logger = logging.getLogger(__name__)
+    logger.error(f"Unexpected error importing GCP libraries: {e}")
+    logger.error(f"Error type: {type(e).__name__}")
+    
+    # Continue execution to allow local testing
+    resourcemanager = None
+    bigquery = None
+    gcp_exceptions = None
+    resourcemanager_available = False
+    bigquery_available = False
+
+# Configure logging with structured format
+
+
+class OverwatchJSONFormatter(logging.Formatter):
+    """Custom JSON formatter for structured logging"""
+
+    def format(self, record):
+        log_entry = {
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'severity': record.levelname,
+            'component': 'overwatch-iam-processor',
+            'message': record.getMessage(),
+            'function_name': record.funcName,
+            'line_number': record.lineno,
+            'project_id': PROJECT_ID
+        }
+
+        # Add extra fields if present
+        if hasattr(record, 'resource_name'):
+            log_entry['resource_name'] = record.resource_name
+        if hasattr(record, 'resource_type'):
+            log_entry['resource_type'] = record.resource_type
+        if hasattr(record, 'action'):
+            log_entry['action'] = record.action
+        if hasattr(record, 'execution_id'):
+            log_entry['execution_id'] = record.execution_id
+        if hasattr(record, 'duration_ms'):
+            log_entry['duration_ms'] = record.duration_ms
+        if hasattr(record, 'execution_time_ms'):
+            log_entry['execution_time_ms'] = record.execution_time_ms
+        if hasattr(record, 'event_type'):
+            log_entry['event_type'] = record.event_type
+        if hasattr(record, 'operation'):
+            log_entry['operation'] = record.operation
+        if hasattr(record, 'error_type'):
+            log_entry['error_type'] = record.error_type
+        if hasattr(record, 'action_taken'):
+            log_entry['action_taken'] = record.action_taken
+
+        return json.dumps(log_entry)
+
+
+# Monitoring-specific logging functions
+def log_remediation_event(resource_name: str, action_taken: str, execution_time_ms: float = None):
+    """Log a remediation event for monitoring."""
+    logger.info("IAM remediation performed", extra={
+        'event_type': 'OVERWATCH_REMEDIATION',
+        'resource_name': resource_name,
+        'action_taken': action_taken,
+        'execution_time_ms': execution_time_ms,
+        'operation': 'iam_remediation'
+    })
+
+
+def log_error_event(error_type: str, operation: str, error_message: str, resource_name: str = None):
+    """Log an error event for monitoring."""
+    logger.error(error_message, extra={
+        'event_type': 'OVERWATCH_ERROR',
+        'error_type': error_type,
+        'operation': operation,
+        'resource_name': resource_name or 'unknown'
+    })
+
+
+def log_performance_metrics(operation: str, execution_time_ms: float, resource_name: str = None):
+    """Log performance metrics for monitoring."""
+    logger.info(f"Operation {operation} completed in {execution_time_ms:.2f}ms", extra={
+        'event_type': 'OVERWATCH_PERFORMANCE',
+        'operation': operation,
+        'execution_time_ms': execution_time_ms,
+        'resource_name': resource_name or 'unknown'
+    })
+
+
+# Configure logging
+logging.basicConfig(
+    level=getattr(logging, os.getenv('LOG_LEVEL', 'INFO')),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Set up structured logging for Cloud Functions
+if os.getenv('FUNCTION_NAME'):  # Running in Cloud Functions environment
+    handler = logging.StreamHandler()
+    handler.setFormatter(OverwatchJSONFormatter())
+    logger.handlers.clear()
+    logger.addHandler(handler)
+    logger.propagate = False
+
+# Environment variables
+PROJECT_ID = os.getenv('PROJECT_ID')
+PUBSUB_SUBSCRIPTION = os.getenv('PUBSUB_SUBSCRIPTION')
+# Performance-optimized retry configurations
+
+
+def get_optimized_retry_config() -> RetryConfig:
+    """Get retry configuration optimized based on performance mode."""
+    if PERFORMANCE_MODE == 'optimized':
+        return RetryConfig(
+            max_attempts=MAX_RETRY_ATTEMPTS,
+            base_delay=0.5,  # Faster initial retry
+            max_delay=30.0,   # Lower max delay for quicker completion
+            exponential_base=1.5,  # Less aggressive backoff
+            jitter=True
+        )
+    else:
+        return RetryConfig(
+            max_attempts=MAX_RETRY_ATTEMPTS,
+            base_delay=1.0,
+            max_delay=60.0,
+            exponential_base=2.0,
+            jitter=True
+        )
+
+# Helper functions for error handling and logging
+
+
+def log_error_context(operation_id: str, error: Exception, context: Dict[str, Any]) -> None:
+    """
+    Log detailed error context for debugging purposes.
+
+    Args:
+        operation_id: Unique identifier for the failed operation
+        error: The exception that occurred
+        context: Additional context data for debugging
+    """
+    error_details = {
+        'operation_id': operation_id,
+        'error_type': type(error).__name__,
+        'error_message': str(error),
+        'context': context,
+        'timestamp': datetime.utcnow().isoformat() + 'Z'
+    }
+
+    # Add GCP-specific error details if available
+    if gcp_exceptions and isinstance(error, gcp_exceptions.GoogleAPIError):
+        if hasattr(error, 'code'):
+            error_details['gcp_error_code'] = error.code
+        if hasattr(error, 'details'):
+            error_details['gcp_error_details'] = str(error.details)
+
+    logger.error(f"🔍 Error Context Debug", extra={
+                 'error_debug': json.dumps(error_details)})
+
+
+# Initialize GCP clients - lazy initialization for better performance
+_resource_manager_client = None
+_bigquery_client = None
+
+
+@with_retry_and_circuit_breaker(
+    retry_config=get_optimized_retry_config(),
+    circuit_breaker=_resource_manager_circuit_breaker
+)
+def get_resource_manager_client():
+    """Get or create Resource Manager client instance with retry logic."""
+    global _resource_manager_client
+    if _resource_manager_client is None:
+        if not resourcemanager_available or resourcemanager is None:
+            raise ImportError("ResourceManager client library not available")
+        _resource_manager_client = resourcemanager.ProjectsClient()
+    return _resource_manager_client
+
+
+@with_retry_and_circuit_breaker(
+    retry_config=get_optimized_retry_config(),
+    circuit_breaker=_bigquery_circuit_breaker
+)
+def get_bigquery_client():
+    """Get or create BigQuery client instance with retry logic."""
+    global _bigquery_client
+    if _bigquery_client is None:
+        if not bigquery_available or bigquery is None:
+            raise ImportError("BigQuery client library not available")
+        _bigquery_client = bigquery.Client(project=PROJECT_ID)
+    return _bigquery_client
+
+
+def get_current_iam_policy(resource_name: str, resource_type: str) -> Optional[Dict[str, Any]]:
+    """
+    Retrieve current IAM policy for the specified resource.
+
+    Args:
+        resource_name: Full resource name (e.g., projects/project-id, datasets/dataset-id)
+        resource_type: Type of resource (project, dataset, table)
+
+    Returns:
+        Current IAM policy as dict, or None if retrieval fails
+    """
+    try:
+        logger.info(
+            f"Retrieving current IAM policy for {resource_type}: {resource_name}")
+
+        if resource_type == 'project':
+            return get_project_iam_policy(resource_name)
+        elif resource_type == 'dataset':
+            return get_dataset_iam_policy(resource_name)
+        elif resource_type == 'table':
+            return get_table_iam_policy(resource_name)
+        else:
+            logger.warning(
+                f"Unsupported resource type for IAM policy retrieval: {resource_type}")
+            return None
+
+    except Exception as e:
+        logger.error(
+            f"Error retrieving IAM policy for {resource_name}: {str(e)}")
+        return None
+
+
+@with_retry_and_circuit_breaker(
+    retry_config=get_optimized_retry_config(),
+    circuit_breaker=_resource_manager_circuit_breaker
+)
+def get_project_iam_policy(resource_name: str) -> Optional[Dict[str, Any]]:
+    """
+    Get IAM policy for a GCP project with retry logic and error handling.
+
+    Args:
+        resource_name: Project resource name (e.g., projects/project-id)
+
+    Returns:
+        Project IAM policy as dict, or None if retrieval fails
+    """
+    execution_start = time.time()
+
+    try:
+        # Extract project ID from resource name
+        if not resource_name.startswith('projects/'):
+            logger.error(f"Invalid project resource name: {resource_name}")
+            return None
+
+        project_id = resource_name.split('/', 1)[1]
+        logger.info(f"Retrieving IAM policy for project: {project_id}")
+
+        # Get Resource Manager client
+        client = get_resource_manager_client()
+
+        # Get the current policy using project ID directly
+        policy = client.get_iam_policy(
+            resource=f"projects/{project_id}")
+
+        # Convert to dict format
+        policy_dict = {
+            'bindings': [],
+            'etag': policy.etag.decode('utf-8') if policy.etag else '',
+            'version': policy.version
+        }
+
+        for binding in policy.bindings:
+            binding_dict = {
+                'role': binding.role,
+                'members': list(binding.members)
+            }
+            if binding.condition:
+                binding_dict['condition'] = {
+                    'title': binding.condition.title,
+                    'description': binding.condition.description,
+                    'expression': binding.condition.expression
+                }
+            policy_dict['bindings'].append(binding_dict)
+
+        execution_time = (time.time() - execution_start) * 1000
+        logger.info(
+            f"✅ Successfully retrieved project IAM policy with {len(policy_dict['bindings'])} bindings in {execution_time:.2f}ms")
+        return policy_dict
+
+    except CircuitBreakerError as e:
+        execution_time = (time.time() - execution_start) * 1000
+        logger.error(
+            f"❌ Circuit breaker prevented project IAM policy retrieval after {execution_time:.2f}ms: {e}")
+        return None
+    except gcp_exceptions.GoogleAPIError as e:
+        execution_time = (time.time() - execution_start) * 1000
+        logger.error(
+            f"❌ Google API error retrieving project IAM policy after {execution_time:.2f}ms: {e}")
+        # Log additional error details for debugging
+        if hasattr(e, 'code'):
+            logger.error(f"   Error code: {e.code}")
+        if hasattr(e, 'details'):
+            logger.error(f"   Error details: {e.details}")
+        return None
+    except Exception as e:
+        execution_time = (time.time() - execution_start) * 1000
+        logger.error(
+            f"❌ Unexpected error retrieving project IAM policy after {execution_time:.2f}ms: {e}")
+        return None
+
+
+@with_retry_and_circuit_breaker(
+    retry_config=get_optimized_retry_config(),
+    circuit_breaker=_bigquery_circuit_breaker
+)
+def get_dataset_iam_policy(resource_name: str) -> Optional[Dict[str, Any]]:
+    """
+    Get IAM policy for a BigQuery dataset with retry logic and error handling.
+
+    Args:
+        resource_name: Dataset resource name (e.g., projects/project-id/datasets/dataset-id)
+
+    Returns:
+        Dataset IAM policy as dict, or None if retrieval fails
+    """
+    execution_start = time.time()
+
+    try:
+        # Parse resource name to extract project and dataset IDs
+        parts = resource_name.split('/')
+        if len(parts) < 4 or parts[0] != 'projects' or parts[2] != 'datasets':
+            logger.error(f"Invalid dataset resource name: {resource_name}")
+            return None
+
+        project_id = parts[1]
+        dataset_id = parts[3]
+        logger.info(
+            f"Retrieving IAM policy for BigQuery dataset: {project_id}.{dataset_id}")
+
+        # Get BigQuery client
+        client = get_bigquery_client()
+
+        # Get dataset reference
+        dataset_ref = client.dataset(dataset_id, project=project_id)
+        dataset = client.get_dataset(dataset_ref)
+
+        # Get access entries (BigQuery's version of IAM bindings)
+        policy_dict = {
+            'bindings': [],
+            'etag': '',  # BigQuery doesn't use etags for access control
+            'version': 1
+        }
+
+        # Convert BigQuery access entries to IAM binding format
+        role_members_map = {}
+        for access_entry in dataset.access_entries:
+            role = map_bigquery_role_to_iam(access_entry.role)
+            member = map_bigquery_entity_to_iam_member(access_entry)
+            if role and member:
+                if role not in role_members_map:
+                    role_members_map[role] = []
+                role_members_map[role].append(member)
+
+        # Convert to binding format
+        for role, members in role_members_map.items():
+            policy_dict['bindings'].append({
+                'role': role,
+                'members': members
+            })
+
+        execution_time = (time.time() - execution_start) * 1000
+        logger.info(
+            f"✅ Successfully retrieved dataset IAM policy with {len(policy_dict['bindings'])} bindings in {execution_time:.2f}ms")
+        return policy_dict
+
+    except CircuitBreakerError as e:
+        execution_time = (time.time() - execution_start) * 1000
+        logger.error(
+            f"❌ Circuit breaker prevented dataset IAM policy retrieval after {execution_time:.2f}ms: {e}")
+        return None
+    except Exception as e:
+        execution_time = (time.time() - execution_start) * 1000
+        logger.error(
+            f"❌ Error retrieving dataset IAM policy after {execution_time:.2f}ms: {e}")
+        # Log additional context for BigQuery errors
+        if 'NotFound' in str(e):
+            logger.error(f"   Dataset may not exist: {resource_name}")
+        elif 'Forbidden' in str(e):
+            logger.error(
+                f"   Insufficient permissions to access dataset: {resource_name}")
+        return None
+
+
+def get_table_iam_policy(resource_name: str) -> Optional[Dict[str, Any]]:
+    """
+    Get IAM policy for a BigQuery table.
+
+    Args:
+        resource_name: Table resource name (e.g., projects/project-id/datasets/dataset-id/tables/table-id)
+
+    Returns:
+        Table IAM policy as dict, or None if retrieval fails
+    """
+    try:
+        # Parse resource name to extract project, dataset, and table IDs
+        parts = resource_name.split('/')
+        if len(parts) < 6 or parts[0] != 'projects' or parts[2] != 'datasets' or parts[4] != 'tables':
+            logger.error(f"Invalid table resource name: {resource_name}")
+            return None
+
+        project_id = parts[1]
+        dataset_id = parts[3]
+        table_id = parts[5]
+
+        # Get BigQuery client
+        client = get_bigquery_client()
+
+        # Get table reference
+        table_ref = client.dataset(
+            dataset_id, project=project_id).table(table_id)
+        table = client.get_table(table_ref)
+
+        # Note: BigQuery tables inherit access from datasets by default
+        # Table-level access control is limited compared to dataset-level
+        logger.info(
+            f"Retrieved table reference for {table_id} (table-level IAM is limited in BigQuery)")
+
+        # Return empty policy as tables typically inherit dataset permissions
+        return {
+            'bindings': [],
+            'etag': '',
+            'version': 1,
+            'note': 'BigQuery tables typically inherit permissions from dataset'
+        }
+
+    except Exception as e:
+        logger.error(f"Error retrieving table IAM policy: {e}")
+        return None
+
+
+def map_bigquery_role_to_iam(bq_role: str) -> str:
+    """
+    Map BigQuery access role to equivalent IAM role.
+
+    Args:
+        bq_role: BigQuery role (READER, WRITER, OWNER)
+
+    Returns:
+        Equivalent IAM role
+    """
+    role_mapping = {
+        'READER': 'roles/bigquery.dataViewer',
+        'WRITER': 'roles/bigquery.dataEditor',
+        'OWNER': 'roles/bigquery.dataOwner'
+    }
+    return role_mapping.get(bq_role, f'roles/bigquery.{bq_role.lower()}')
+
+
+def map_bigquery_entity_to_iam_member(access_entry) -> Optional[str]:
+    """
+    Map BigQuery access entry entity to IAM member format.
+
+    Args:
+        access_entry: BigQuery AccessEntry object
+
+    Returns:
+        IAM member string (e.g., user:email@domain.com)
+    """
+    if access_entry.user_by_email:
+        return f"user:{access_entry.user_by_email}"
+    elif access_entry.group_by_email:
+        return f"group:{access_entry.group_by_email}"
+    elif access_entry.service_account_by_email:
+        return f"serviceAccount:{access_entry.service_account_by_email}"
+    elif access_entry.domain:
+        return f"domain:{access_entry.domain}"
+    else:
+        logger.warning(f"Unknown BigQuery access entry type: {access_entry}")
+        return None
+
+
+def process_iam_change(data: Dict[str, Any], context: Any) -> str:
+    """
+    Main entry point for the Cloud Function with comprehensive error handling and timeout management.
+    Processes IAM policy change notifications from Pub/Sub with comprehensive logging.
+
+    PRD Requirement: Execute within 30 seconds of IAM change
+
+    Args:
+        data: Pub/Sub message data containing the log entry
+        context: Cloud Function context object
+
+    Returns:
+        str: Status message
+    """
+    start_time = datetime.utcnow()
+    execution_timeout = 25.0  # Set timeout to 25 seconds to leave buffer for cleanup
+    execution_id = create_execution_context(getattr(context, 'event_id', None))
+
+    # Initialize result for error handling
+    result = {
+        'action': 'INITIALIZATION_FAILED',
+        'execution_id': execution_id,
+        'changes_made': False
+    }
+    resource_info = {'resource_name': 'unknown', 'resource_type': 'unknown'}
+    log_entry = {}
+
+    def check_timeout():
+        """Check if execution is approaching timeout"""
+        elapsed_time = (datetime.utcnow() - start_time).total_seconds()
+        if elapsed_time > execution_timeout:
+            raise TimeoutError(
+                f"Function execution exceeded timeout of {execution_timeout}s (elapsed: {elapsed_time:.2f}s)")
+        return elapsed_time
+
+    try:
+        logger.info(f"🚀 OVERWATCH EXECUTION STARTED", extra={
+            'execution_id': execution_id,
+            'action': 'FUNCTION_STARTED',
+            'timeout_limit_seconds': execution_timeout
+        })
+        logger.info(
+            f"Function triggered by message ID: {getattr(context, 'event_id', 'unknown')}")
+        logger.info(
+            f"Function execution timestamp: {getattr(context, 'timestamp', 'unknown')}")
+
+        # Early timeout check
+        elapsed = check_timeout()
+        logger.info(f"⏱️ Execution time check: {elapsed:.2f}s elapsed")
+
+        # Decode the Pub/Sub message
+        if 'data' not in data:
+            error_msg = "No data field in Pub/Sub message"
+            logger.error(error_msg)
+            log_error_context(execution_id, 'unknown', 'pubsub_message_decode',
+                              ValueError(error_msg), {'pubsub_data_keys': list(data.keys())})
+            return "ERROR: No data field"
+
+        # Base64 decode the message
+        decode_start = datetime.utcnow()
+        message_data = base64.b64decode(data['data']).decode('utf-8')
+        log_entry = json.loads(message_data)
+        decode_time_ms = (datetime.utcnow() -
+                          decode_start).total_seconds() * 1000
+        log_performance_metrics('decode_pubsub_message', decode_time_ms)
+
+        # Check timeout after decode
+        elapsed = check_timeout()
+
+        logger.info(f"📨 LOG ENTRY RECEIVED", extra={
+            'execution_id': execution_id,
+            'action': 'LOG_ENTRY_DECODED',
+            'elapsed_seconds': elapsed
+        })
+        logger.info(
+            f"Received log entry: {log_entry.get('logName', 'unknown')}")
+
+        # Extract relevant information from the log entry
+        extract_start = datetime.utcnow()
+        resource_info = extract_resource_info(log_entry)
+        if not resource_info:
+            error_msg = "Could not extract resource information from log entry"
+            logger.warning(error_msg)
+            log_error_context(execution_id, 'unknown', 'resource_info_extraction',
+                              ValueError(error_msg), {'log_entry_keys': list(log_entry.keys())})
+            return "SKIPPED: Unable to extract resource info"
+
+        extract_time_ms = (datetime.utcnow() -
+                           extract_start).total_seconds() * 1000
+        log_performance_metrics('extract_resource_info',
+                                extract_time_ms, resource_info['resource_name'])
+
+        # Check timeout after resource extraction
+        elapsed = check_timeout()
+
+        logger.info(f"🎯 RESOURCE IDENTIFIED", extra={
+            'execution_id': execution_id,
+            'resource_name': resource_info['resource_name'],
+            'resource_type': resource_info['resource_type'],
+            'action': 'RESOURCE_IDENTIFIED',
+            'elapsed_seconds': elapsed
+        })
+
+        # Check if this is an IAM policy change we should process
+        if not should_process_change(log_entry, resource_info):
+            result['action'] = 'SKIPPED_CRITERIA_NOT_MET'
+            logger.info(f"⏭️ PROCESSING SKIPPED", extra={
+                'execution_id': execution_id,
+                'resource_name': resource_info['resource_name'],
+                'action': 'PROCESSING_SKIPPED'
+            })
+            return "SKIPPED: Does not meet criteria"
+
+        # Final timeout check before processing
+        elapsed = check_timeout()
+        logger.info(
+            f"⏱️ Starting remediation with {execution_timeout - elapsed:.2f}s remaining")
+
+        # Add execution_id to result for tracking
+        result['execution_id'] = execution_id
+
+        # Process the IAM change with performance tracking
+        process_start = datetime.utcnow()
+        result = handle_iam_change(log_entry, resource_info)
+        # Ensure execution_id is preserved
+        result['execution_id'] = execution_id
+        process_time_ms = (datetime.utcnow() -
+                           process_start).total_seconds() * 1000
+        log_performance_metrics(
+            'handle_iam_change', process_time_ms, resource_info['resource_name'])
+
+        # Log comprehensive remediation action
+        log_remediation_action(log_entry, resource_info, result)
+
+        # Store audit record if BigQuery is enabled
+        if BIGQUERY_DATASET and BIGQUERY_TABLE:
+            audit_start = datetime.utcnow()
+            store_audit_record(log_entry, resource_info, result)
+            audit_time_ms = (datetime.utcnow() -
+                             audit_start).total_seconds() * 1000
+            log_performance_metrics(
+                'store_audit_record', audit_time_ms, resource_info['resource_name'])
+
+        # Log overall execution metrics
+        total_time_ms = (datetime.utcnow() - start_time).total_seconds() * 1000
+        log_performance_metrics(
+            'total_execution', total_time_ms, resource_info['resource_name'])
+
+        logger.info(f"✅ OVERWATCH EXECUTION COMPLETED", extra={
+            'execution_id': execution_id,
+            'resource_name': resource_info['resource_name'],
+            'action': 'FUNCTION_COMPLETED'
+        })
+        logger.info(f"Successfully processed IAM change: {result['action']}")
+
+        return f"SUCCESS: {result['action']}"
+
+    except TimeoutError as e:
+        # Handle timeout specifically
+        current_time = datetime.utcnow()
+        elapsed_time = (current_time - start_time).total_seconds()
+
+        logger.error(f"⏰ EXECUTION TIMEOUT", extra={
+            'execution_id': execution_id,
+            'resource_name': resource_info.get('resource_name', 'unknown'),
+            'action': 'FUNCTION_TIMEOUT',
+            'elapsed_seconds': elapsed_time,
+            'timeout_limit_seconds': execution_timeout
+        })
+
+        # Update result for timeout
+        result.update({
+            'action': 'EXECUTION_TIMEOUT',
+            'error_message': f"Function execution timed out after {elapsed_time:.2f}s",
+            'changes_made': False,
+            'elapsed_seconds': elapsed_time
+        })
+
+        # Still attempt to log the timeout for audit purposes
+        try:
+            log_remediation_action(log_entry, resource_info, result)
+            if BIGQUERY_DATASET and BIGQUERY_TABLE:
+                store_audit_record(log_entry, resource_info, result)
+        except Exception as audit_error:
+            logger.warning(
+                f"Failed to log timeout audit record: {audit_error}")
+
+        return f"TIMEOUT: Execution exceeded {execution_timeout}s limit"
+
+    except Exception as e:
+        # Log comprehensive error context
+        current_time = datetime.utcnow()
+        elapsed_time = (current_time - start_time).total_seconds()
+
+        log_error_context(execution_id, resource_info.get('resource_name', 'unknown'),
+                          'process_iam_change', e, {
+            'pubsub_message_keys': list(data.keys()) if data else [],
+            'log_entry_available': bool(log_entry),
+            'resource_info_available': bool(resource_info),
+            'elapsed_seconds': elapsed_time,
+            'timeout_limit_seconds': execution_timeout
+        })
+
+        # Update result for failed execution
+        result.update({
+            'action': 'EXECUTION_FAILED',
+            'error_message': str(e),
+            'changes_made': False,
+            'elapsed_seconds': elapsed_time
+        })
+
+        # Still log the action and store audit record for failed executions
+        try:
+            log_remediation_action(log_entry, resource_info, result)
+            if BIGQUERY_DATASET and BIGQUERY_TABLE:
+                store_audit_record(log_entry, resource_info, result)
+
+            # Log overall execution metrics (failed)
+            total_time_ms = (datetime.utcnow() -
+                             start_time).total_seconds() * 1000
+            log_performance_metrics('total_execution_failed', total_time_ms, resource_info.get(
+                'resource_name', 'unknown'))
+        except Exception as audit_error:
+            logger.warning(f"Failed to log error audit record: {audit_error}")
+
+        logger.error(f"❌ OVERWATCH EXECUTION FAILED", extra={
+            'execution_id': execution_id,
+            'resource_name': resource_info.get('resource_name', 'unknown'),
+            'action': 'FUNCTION_FAILED',
+            'elapsed_seconds': elapsed_time
+        })
+        logger.error(f"Error processing IAM change: {str(e)}", exc_info=True)
+
+        return f"ERROR: {str(e)}"
+
+
+def extract_resource_info(log_entry: Dict[str, Any]) -> Optional[Dict[str, str]]:
+    """
+    Extract resource information from the cloud audit log entry.
+
+    Args:
+        log_entry: The cloud audit log entry
+
+    Returns:
+        Dict containing resource name and type, or None if extraction fails
+    """
+    try:
+        # Extract from protoPayload
+        proto_payload = log_entry.get('protoPayload', {})
+
+        # Get resource name from different possible locations
+        resource_name = (
+            proto_payload.get('resourceName') or
+            log_entry.get('resource', {}).get('labels', {}).get('resource_name') or
+            proto_payload.get('resource', {}).get('resourceName')
+        )
+
+        if not resource_name:
+            logger.warning("No resource name found in log entry")
+            return None
+
+        # Determine resource type based on resource name pattern
+        resource_type = determine_resource_type(resource_name)
+
+        # Extract IAM policy changes
+        policy_changes = extract_iam_policy_changes(log_entry)
+
+        result = {
+            'resource_name': resource_name,
+            'resource_type': resource_type,
+            'method_name': proto_payload.get('methodName', ''),
+            'caller_ip': proto_payload.get('requestMetadata', {}).get('callerIp', ''),
+            'user_agent': proto_payload.get('requestMetadata', {}).get('callerSuppliedUserAgent', ''),
+            'timestamp': log_entry.get('timestamp', ''),
+            'severity': log_entry.get('severity', ''),
+            'policy_changes': policy_changes
+        }
+
+        logger.info(
+            f"Extracted resource info for {resource_name}: {len(policy_changes.get('bindings', []))} bindings found")
+        return result
+
+    except Exception as e:
+        logger.error(f"Error extracting resource info: {str(e)}")
+        return None
+
+
+def extract_iam_policy_changes(log_entry: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Extract IAM policy changes from the log entry.
+
+    Parses the SetIamPolicy request to extract bindings being added/modified.
+
+    Args:
+        log_entry: The cloud audit log entry
+
+    Returns:
+        Dict containing policy change details including bindings
+    """
+    try:
+        proto_payload = log_entry.get('protoPayload', {})
+        request = proto_payload.get('request', {})
+
+        # Extract the new policy being set
+        policy = request.get('policy', {})
+        bindings = policy.get('bindings', [])
+
+        # Parse each binding to extract principals and roles
+        parsed_bindings = []
+        for binding in bindings:
+            role = binding.get('role', '')
+            members = binding.get('members', [])
+
+            # Categorize members by type
+            individual_emails = []
+            group_emails = []
+            service_accounts = []
+            other_principals = []
+
+            for member in members:
+                member_type, principal = parse_principal(member)
+                if member_type == 'user':
+                    individual_emails.append(principal)
+                elif member_type == 'group':
+                    group_emails.append(principal)
+                elif member_type == 'serviceAccount':
+                    service_accounts.append(principal)
+                else:
+                    other_principals.append(member)
+
+            parsed_binding = {
+                'role': role,
+                'members': members,
+                'individual_emails': individual_emails,
+                'group_emails': group_emails,
+                'service_accounts': service_accounts,
+                'other_principals': other_principals
+            }
+
+            parsed_bindings.append(parsed_binding)
+
+            logger.debug(
+                f"Parsed binding - Role: {role}, Users: {len(individual_emails)}, Groups: {len(group_emails)}, SAs: {len(service_accounts)}")
+
+        # Extract caller information
+        authentication_info = proto_payload.get('authenticationInfo', {})
+        caller_email = authentication_info.get('principalEmail', '')
+
+        policy_delta = request.get('policyDelta', {})
+
+        return {
+            'bindings': parsed_bindings,
+            'policy_delta': policy_delta,
+            'caller_email': caller_email,
+            'total_bindings': len(parsed_bindings),
+            'etag': policy.get('etag', ''),
+            'version': policy.get('version', 1)
+        }
+
+    except Exception as e:
+        logger.error(f"Error extracting IAM policy changes: {str(e)}")
+        return {
+            'bindings': [],
+            'policy_delta': {},
+            'caller_email': '',
+            'total_bindings': 0,
+            'etag': '',
+            'version': 1
+        }
+
+
+def parse_principal(member: str) -> tuple[str, str]:
+    """
+    Parse IAM principal to determine type and extract email/identifier.
+
+    Args:
+        member: IAM member string (e.g., "user:email@domain.com", "serviceAccount:sa@project.iam.gserviceaccount.com")
+
+    Returns:
+        Tuple of (member_type, principal_identifier)
+    """
+    if ':' not in member:
+        return 'unknown', member
+
+    member_type, principal = member.split(':', 1)
+
+    # Map IAM member types
+    type_mapping = {
+        'user': 'user',
+        'group': 'group',
+        'serviceAccount': 'serviceAccount',
+        'domain': 'domain',
+        'deleted': 'deleted',
+        'allUsers': 'allUsers',
+        'allAuthenticatedUsers': 'allAuthenticatedUsers'
+    }
+
+    normalized_type = type_mapping.get(member_type, member_type)
+
+    return normalized_type, principal
+
+
+def determine_resource_type(resource_name: str) -> str:
+    """
+    Determine the type of GCP resource based on its name pattern.
+
+    Args:
+        resource_name: Full resource name from the log entry
+
+    Returns:
+        Resource type string (project, dataset, table, etc.)
+    """
+    if resource_name.startswith('projects/') and resource_name.count('/') == 1:
+        return 'project'
+    elif '/datasets/' in resource_name and '/tables/' not in resource_name:
+        return 'dataset'
+    elif '/datasets/' in resource_name and '/tables/' in resource_name:
+        return 'table'
+    else:
+        # Generic resource type
+        parts = resource_name.split('/')
+        if len(parts) >= 2:
+            return parts[-2].rstrip('s')  # Remove 's' from plural forms
+        return 'unknown'
+
+
+def should_process_change(log_entry: Dict[str, Any], resource_info: Dict[str, str]) -> bool:
+    """
+    Determine if this IAM change should be processed by Overwatch.
+
+    Args:
+        log_entry: The cloud audit log entry
+        resource_info: Extracted resource information
+
+    Returns:
+        True if the change should be processed
+    """
+    # Only process SetIamPolicy calls
+    if resource_info.get('method_name') != 'SetIamPolicy':
+        return False
+
+    # Only process supported resource types
+    supported_types = ['project', 'dataset', 'table']
+    if resource_info.get('resource_type') not in supported_types:
+        return False
+
+    # Check if there are IAM bindings in the request
+    proto_payload = log_entry.get('protoPayload', {})
+    request = proto_payload.get('request', {})
+    policy = request.get('policy', {})
+    bindings = policy.get('bindings', [])
+
+    if not bindings:
+        logger.info("No IAM bindings found in policy change")
+        return False
+
+    return True
+
+
+def apply_remediated_iam_policy(resource_name: str, resource_type: str, remediated_policy: Dict[str, Any]) -> bool:
+    """
+    Apply remediated IAM policy back to the GCP resource.
+
+    Args:
+        resource_name: Full resource name (e.g., projects/project-id)
+        resource_type: Type of resource (project, dataset, table)
+        remediated_policy: The remediated IAM policy to apply
+
+    Returns:
+        True if policy was successfully applied, False otherwise
+    """
+    try:
+        logger.info(
+            f"Applying remediated IAM policy to {resource_type}: {resource_name}")
+
+        if resource_type == 'project':
+            return set_project_iam_policy(resource_name, remediated_policy)
+        elif resource_type == 'dataset':
+            return set_dataset_iam_policy(resource_name, remediated_policy)
+        elif resource_type == 'table':
+            return set_table_iam_policy(resource_name, remediated_policy)
+        else:
+            logger.warning(
+                f"Unsupported resource type for IAM policy application: {resource_type}")
+            return False
+
+    except Exception as e:
+        logger.error(
+            f"Error applying remediated IAM policy to {resource_name}: {str(e)}")
+        return False
+
+
+@with_retry_and_circuit_breaker(
+    retry_config=get_optimized_retry_config(),
+    circuit_breaker=_resource_manager_circuit_breaker
+)
+def set_project_iam_policy(resource_name: str, policy_dict: Dict[str, Any]) -> bool:
+    """
+    Set IAM policy for a GCP project with retry logic and comprehensive error handling.
+
+    Args:
+        resource_name: Project resource name (e.g., projects/project-id)
+        policy_dict: IAM policy as dict
+
+    Returns:
+        True if policy was successfully set, False otherwise
+    """
+    execution_start = time.time()
+
+    try:
+        # Extract project ID from resource name
+        if not resource_name.startswith('projects/'):
+            logger.error(f"❌ Invalid project resource name: {resource_name}")
+            return False
+
+        project_id = resource_name.split('/', 1)[1]
+        logger.info(f"🎯 Applying IAM policy to project: {project_id}")
+
+        # Get Resource Manager client
+        client = get_resource_manager_client()
+
+        # Apply the policy with timeout awareness using dictionary format
+        logger.info(
+            f"📝 Executing SetIamPolicy request for {len(policy_dict.get('bindings', []))} bindings...")
+
+        # Use dictionary-based policy format which is supported by modern client libraries
+        result = client.set_iam_policy(
+            resource=f"projects/{project_id}",
+            policy=policy_dict
+        )
+
+        execution_time = (time.time() - execution_start) * 1000
+        logger.info(
+            f"✅ Successfully applied project IAM policy with {len(result.bindings or [])} bindings in {execution_time:.2f}ms")
+
+        # Verify the policy was applied correctly
+        if len(result.bindings) != len(policy.bindings):
+            logger.warning(
+                f"⚠️ Policy binding count mismatch: expected {len(policy.bindings)}, got {len(result.bindings)}")
+
+        return True
+
+    except CircuitBreakerError as e:
+        execution_time = (time.time() - execution_start) * 1000
+        logger.error(
+            f"❌ Circuit breaker prevented project IAM policy update after {execution_time:.2f}ms: {e}")
+        return False
+    except gcp_exceptions.GoogleAPIError as e:
+        execution_time = (time.time() - execution_start) * 1000
+        error_context = {
+            'execution_time_ms': execution_time,
+            'project_id': project_id,
+            'policy_bindings_count': len(policy_dict.get('bindings', [])),
+            'error_code': getattr(e, 'code', 'unknown'),
+            'error_message': str(e)
+        }
+
+        logger.error(f"❌ Google API error setting project IAM policy: {e}")
+        log_error_context(
+            f"set_project_iam_policy_{project_id}", e, error_context)
+
+        # Handle specific error conditions
+        if hasattr(e, 'code'):
+            if e.code == 409:  # Conflict - policy was modified concurrently
+                logger.error(
+                    "   Policy conflict detected - another process may have modified the policy")
+            elif e.code == 403:  # Permission denied
+                logger.error(
+                    "   Insufficient permissions to modify project IAM policy")
+
+        return False
+    except Exception as e:
+        execution_time = (time.time() - execution_start) * 1000
+        error_context = {
+            'execution_time_ms': execution_time,
+            'project_id': project_id,
+            'policy_bindings_count': len(policy_dict.get('bindings', [])),
+            'error_type': type(e).__name__,
+            'error_message': str(e)
+        }
+
+        logger.error(
+            f"❌ Unexpected error setting project IAM policy after {execution_time:.2f}ms: {e}")
+        log_error_context(
+            f"set_project_iam_policy_{project_id}", e, error_context)
+        return False
+
+
+@with_retry_and_circuit_breaker(
+    retry_config=get_optimized_retry_config(),
+    circuit_breaker=_bigquery_circuit_breaker
+)
+def set_dataset_iam_policy(resource_name: str, policy_dict: Dict[str, Any]) -> bool:
+    """
+    Set IAM policy for a BigQuery dataset with retry logic and comprehensive error handling.
+
+    Args:
+        resource_name: Dataset resource name (e.g., projects/project-id/datasets/dataset-id)
+        policy_dict: IAM policy as dict
+
+    Returns:
+        True if policy was successfully set, False otherwise
+    """
+    execution_start = time.time()
+
+    try:
+        # Parse resource name to extract project and dataset IDs
+        parts = resource_name.split('/')
+        if len(parts) < 4 or parts[0] != 'projects' or parts[2] != 'datasets':
+            logger.error(f"❌ Invalid dataset resource name: {resource_name}")
+            return False
+
+        project_id = parts[1]
+        dataset_id = parts[3]
+        logger.info(
+            f"🎯 Applying IAM policy to BigQuery dataset: {project_id}.{dataset_id}")
+
+        # Get BigQuery client
+        client = get_bigquery_client()
+
+        # Get dataset reference
+        dataset_ref = client.dataset(dataset_id, project=project_id)
+        dataset = client.get_dataset(dataset_ref)
+
+        # Store original access entries count for verification
+        original_entries_count = len(dataset.access_entries)
+
+        # Clear existing access entries
+        dataset.access_entries = []
+
+        # Convert IAM bindings back to BigQuery access entries
+        for binding in policy_dict.get('bindings', []):
+            role = map_iam_role_to_bigquery(binding['role'])
+            members = binding.get('members', [])
+
+            for member in members:
+                access_entry = create_bigquery_access_entry(member, role)
+                if access_entry:
+                    dataset.access_entries.append(access_entry)
+
+        # Update the dataset with timeout awareness
+        logger.info(
+            f"📝 Executing dataset update for {len(dataset.access_entries)} access entries...")
+        client.update_dataset(dataset, ['access_entries'])
+
+        execution_time = (time.time() - execution_start) * 1000
+        logger.info(
+            f"✅ Successfully applied dataset IAM policy with {len(dataset.access_entries)} access entries in {execution_time:.2f}ms")
+
+        # Log the change for auditability
+        logger.info(
+            f"📊 Access entries changed: {original_entries_count} → {len(dataset.access_entries)}")
+
+        return True
+
+    except CircuitBreakerError as e:
+        execution_time = (time.time() - execution_start) * 1000
+        logger.error(
+            f"❌ Circuit breaker prevented dataset IAM policy update after {execution_time:.2f}ms: {e}")
+        return False
+    except Exception as e:
+        execution_time = (time.time() - execution_start) * 1000
+        error_context = {
+            'execution_time_ms': execution_time,
+            'project_id': project_id,
+            'dataset_id': dataset_id,
+            'policy_bindings_count': len(policy_dict.get('bindings', [])),
+            'error_type': type(e).__name__,
+            'error_message': str(e)
+        }
+
+        logger.error(
+            f"❌ Error setting dataset IAM policy after {execution_time:.2f}ms: {e}")
+        log_error_context(
+            f"set_dataset_iam_policy_{project_id}_{dataset_id}", e, error_context)
+
+        # Handle specific BigQuery errors
+        if 'NotFound' in str(e):
+            logger.error("   Dataset may not exist or may have been deleted")
+        elif 'Forbidden' in str(e):
+            logger.error(
+                "   Insufficient permissions to modify dataset IAM policy")
+        elif 'BadRequest' in str(e):
+            logger.error(
+                "   Invalid policy configuration or malformed access entries")
+
+        return False
+
+
+def set_table_iam_policy(resource_name: str, policy_dict: Dict[str, Any]) -> bool:
+    """
+    Set IAM policy for a BigQuery table.
+    Note: BigQuery tables have limited IAM support and inherit from datasets.
+
+    Args:
+        resource_name: Table resource name (e.g., projects/project-id/datasets/dataset-id/tables/table-id)
+        policy_dict: IAM policy as dict
+
+    Returns:
+        True if policy was successfully set, False otherwise
+    """
+    try:
+        # BigQuery tables inherit permissions from datasets
+        # Table-level IAM is very limited, so we'll log and return success
+        logger.info(
+            f"BigQuery table IAM policy update requested for {resource_name}")
+        logger.info(
+            "Note: BigQuery tables inherit most permissions from their parent dataset")
+        logger.info(
+            "Table-level IAM modifications are limited - no action taken")
+
+        return True
+
+    except Exception as e:
+        logger.error(f"Error setting table IAM policy: {e}")
+        return False
+
+
+def map_iam_role_to_bigquery(iam_role: str) -> str:
+    """
+    Map IAM role to BigQuery access role.
+
+    Args:
+        iam_role: IAM role (roles/bigquery.dataViewer, etc.)
+
+    Returns:
+        BigQuery role (READER, WRITER, OWNER)
+    """
+    role_mapping = {
+        'roles/bigquery.dataViewer': 'READER',
+        'roles/bigquery.dataEditor': 'WRITER',
+        'roles/bigquery.dataOwner': 'OWNER'
+    }
+
+    # Extract role from full IAM role path
+    role_name = iam_role.split('/')[-1] if '/' in iam_role else iam_role
+
+    # Direct mapping first
+    if iam_role in role_mapping:
+        return role_mapping[iam_role]
+
+    # Fallback based on role name
+    if 'viewer' in role_name.lower() or 'reader' in role_name.lower():
+        return 'READER'
+    elif 'editor' in role_name.lower() or 'writer' in role_name.lower():
+        return 'WRITER'
+    elif 'owner' in role_name.lower() or 'admin' in role_name.lower():
+        return 'OWNER'
+    else:
+        logger.warning(
+            f"Unknown IAM role for BigQuery mapping: {iam_role}, defaulting to READER")
+        return 'READER'
+
+
+def create_bigquery_access_entry(member: str, role: str):
+    """
+    Create BigQuery AccessEntry from IAM member and role.
+
+    Args:
+        member: IAM member string (e.g., user:email@domain.com)
+        role: BigQuery role (READER, WRITER, OWNER)
+
+    Returns:
+        BigQuery AccessEntry object or None
+    """
+    if ':' not in member:
+        logger.warning(f"Invalid member format: {member}")
+        return None
+
+    member_type, principal = member.split(':', 1)
+
+    try:
+        access_entry = bigquery.AccessEntry(None, role, None)
+
+        if member_type == 'user':
+            access_entry._properties['userByEmail'] = principal
+        elif member_type == 'group':
+            access_entry._properties['groupByEmail'] = principal
+        elif member_type == 'serviceAccount':
+            access_entry._properties['serviceAccountByEmail'] = principal
+        elif member_type == 'domain':
+            access_entry._properties['domain'] = principal
+        else:
+            logger.warning(
+                f"Unsupported member type for BigQuery: {member_type}")
+            return None
+
+        return access_entry
+
+    except Exception as e:
+        logger.error(f"Error creating BigQuery access entry for {member}: {e}")
+        return None
+
+
+def create_remediated_policy(current_policy: Dict[str, Any], analysis_result: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Create a remediated IAM policy by removing individual emails while preserving groups.
+
+    Args:
+        current_policy: Current IAM policy from GCP
+        analysis_result: Result from analyze_bindings_for_remediation
+
+    Returns:
+        Remediated IAM policy with individual emails removed
+    """
+    remediated_policy = {
+        'bindings': [],
+        'etag': current_policy.get('etag', ''),
+        'version': current_policy.get('version', 1)
+    }
+
+    # Get emails to remove
+    emails_to_remove = set()
+    for removal_candidate in analysis_result.get('removal_candidates', []):
+        emails_to_remove.add(f"user:{removal_candidate['email']}")
+
+    logger.info(
+        f"Creating remediated policy - removing {len(emails_to_remove)} individual emails")
+
+    # Process each binding in the current policy
+    for binding in current_policy.get('bindings', []):
+        role = binding.get('role', '')
+        members = binding.get('members', [])
+
+        # Filter out individual emails to be removed
+        remediated_members = []
+        removed_count = 0
+
+        for member in members:
+            if member in emails_to_remove:
+                removed_count += 1
+                logger.debug(f"Removing {member} from role {role}")
+            else:
+                remediated_members.append(member)
+
+        # Only keep bindings that have remaining members
+        if remediated_members:
+            remediated_binding = {
+                'role': role,
+                'members': remediated_members
+            }
+
+            # Preserve conditions if present
+            if 'condition' in binding:
+                remediated_binding['condition'] = binding['condition']
+
+            remediated_policy['bindings'].append(remediated_binding)
+        else:
+            logger.info(
+                f"Binding for role {role} completely removed (no remaining members)")
+
+    logger.info(
+        f"Remediated policy created with {len(remediated_policy['bindings'])} bindings")
+    return remediated_policy
+
+
+def handle_iam_change(log_entry: Dict[str, Any], resource_info: Dict[str, str]) -> Dict[str, Any]:
+    """
+    Process the IAM policy change and remediate by removing individual email bindings while preserving groups.
+
+    Args:
+        log_entry: The cloud audit log entry
+        resource_info: Extracted resource information
+
+    Returns:
+        Dict containing the remediation action taken and details
+    """
+    logger.info("Processing IAM policy change for remediation...")
+
+    resource_name = resource_info.get('resource_name', '')
+    resource_type = resource_info.get('resource_type', '')
+
+    # Get current IAM policy from GCP
+    current_policy = get_current_iam_policy(resource_name, resource_type)
+    if not current_policy:
+        logger.warning(
+            "Could not retrieve current IAM policy - skipping remediation")
+        return {
+            'action': 'SKIPPED',
+            'details': 'Unable to retrieve current IAM policy',
+            'individual_emails_found': 0,
+            'groups_preserved': 0,
+            'changes_made': False
+        }
+
+    # Get proposed policy changes from log entry
+    policy_changes = resource_info.get('policy_changes', {})
+    proposed_bindings = policy_changes.get('bindings', [])
+
+    if not proposed_bindings:
+        logger.info("No bindings found in policy changes")
+        return {
+            'action': 'SKIPPED',
+            'details': 'No IAM bindings found to analyze',
+            'individual_emails_found': 0,
+            'groups_preserved': 0,
+            'current_policy_retrieved': True,
+            'changes_made': False
+        }
+
+    # Analyze proposed bindings for remediation
+    analysis_result = analyze_bindings_for_remediation(proposed_bindings)
+
+    # Compare with current policy to identify changes
+    policy_comparison = compare_policies(current_policy, proposed_bindings)
+
+    # Check if remediation is needed
+    individual_emails_to_remove = analysis_result['individual_emails_to_remove']
+
+    if individual_emails_to_remove == 0:
+        logger.info("No individual emails detected - no remediation needed")
+        return {
+            'action': 'NO_REMEDIATION_NEEDED',
+            'details': 'No individual email bindings found to remove',
+            'resource_name': resource_name,
+            'resource_type': resource_type,
+            'individual_emails_found': 0,
+            'groups_preserved': analysis_result['groups_to_preserve'],
+            'service_accounts_preserved': analysis_result['service_accounts_to_preserve'],
+            'policy_comparison': policy_comparison,
+            'changes_made': False
+        }
+
+    logger.info(
+        f"REMEDIATION REQUIRED: {individual_emails_to_remove} individual emails to remove")
+
+    # Create remediated policy by removing individual emails
+    remediated_policy = create_remediated_policy(
+        current_policy, analysis_result)
+
+    # Apply remediated policy back to GCP resource
+    remediation_success = apply_remediated_iam_policy(
+        resource_name, resource_type, remediated_policy)
+
+    if remediation_success:
+        logger.info(
+            f"✅ REMEDIATION SUCCESSFUL: Removed {individual_emails_to_remove} individual email(s) from {resource_name}")
+        action = 'REMEDIATION_COMPLETED'
+        details = f'Successfully removed {individual_emails_to_remove} individual email bindings while preserving {analysis_result["groups_to_preserve"]} groups and {analysis_result["service_accounts_to_preserve"]} service accounts'
+        changes_made = True
+    else:
+        logger.error(
+            f"❌ REMEDIATION FAILED: Could not apply remediated policy to {resource_name}")
+        action = 'REMEDIATION_FAILED'
+        details = f'Analysis complete but failed to apply remediated policy to {resource_type}'
+        changes_made = False
+
+    # Log detailed results
+    logger.info(f"Remediation summary:")
+    logger.info(f"  - Resource: {resource_name} ({resource_type})")
+    logger.info(
+        f"  - Individual emails removed: {individual_emails_to_remove if remediation_success else 0}")
+    logger.info(
+        f"  - Groups preserved: {analysis_result['groups_to_preserve']}")
+    logger.info(
+        f"  - Service accounts preserved: {analysis_result['service_accounts_to_preserve']}")
+    logger.info(f"  - Remediation successful: {remediation_success}")
+
+    return {
+        'action': action,
+        'details': details,
+        'resource_name': resource_name,
+        'resource_type': resource_type,
+        'current_policy_retrieved': True,
+        'current_policy_etag': current_policy.get('etag', ''),
+        'individual_emails_found': individual_emails_to_remove,
+        'individual_emails_removed': individual_emails_to_remove if remediation_success else 0,
+        'groups_preserved': analysis_result['groups_to_preserve'],
+        'service_accounts_preserved': analysis_result['service_accounts_to_preserve'],
+        'policy_comparison': policy_comparison,
+        'analysis_details': analysis_result,
+        'remediation_successful': remediation_success,
+        'changes_made': changes_made
+    }
+
+
+def compare_policies(current_policy: Dict[str, Any], proposed_bindings: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Compare current IAM policy with proposed policy changes.
+
+    Args:
+        current_policy: Current IAM policy from GCP
+        proposed_bindings: Proposed IAM bindings from audit log
+
+    Returns:
+        Dict containing policy comparison analysis
+    """
+    current_bindings = current_policy.get('bindings', [])
+
+    # Create role->members mapping for easier comparison
+    current_role_members = {}
+    for binding in current_bindings:
+        role = binding.get('role', '')
+        members = set(binding.get('members', []))
+        current_role_members[role] = members
+
+    proposed_role_members = {}
+    for binding in proposed_bindings:
+        role = binding.get('role', '')
+        members = set(binding.get('members', []))
+        proposed_role_members[role] = members
+
+    # Identify changes
+    new_bindings = 0
+    modified_bindings = 0
+    new_members = []
+    removed_members = []
+
+    # Check for new or modified role bindings
+    for role, proposed_members in proposed_role_members.items():
+        if role not in current_role_members:
+            # Completely new role binding
+            new_bindings += 1
+            for member in proposed_members:
+                new_members.append(
+                    {'role': role, 'member': member, 'change': 'added'})
+        else:
+            # Existing role - check for member changes
+            current_members = current_role_members[role]
+
+            # New members in this role
+            added_members = proposed_members - current_members
+            if added_members:
+                modified_bindings += 1
+                for member in added_members:
+                    new_members.append(
+                        {'role': role, 'member': member, 'change': 'added'})
+
+            # Removed members in this role
+            removed_member_set = current_members - proposed_members
+            if removed_member_set:
+                modified_bindings += 1
+                for member in removed_member_set:
+                    removed_members.append(
+                        {'role': role, 'member': member, 'change': 'removed'})
+
+    # Check for completely removed role bindings
+    for role, current_members in current_role_members.items():
+        if role not in proposed_role_members:
+            for member in current_members:
+                removed_members.append(
+                    {'role': role, 'member': member, 'change': 'role_removed'})
+
+    return {
+        'new_bindings': new_bindings,
+        'modified_bindings': modified_bindings,
+        'total_changes': len(new_members) + len(removed_members),
+        'new_members': new_members,
+        'removed_members': removed_members,
+        'current_binding_count': len(current_bindings),
+        'proposed_binding_count': len(proposed_bindings)
+    }
+
+
+def analyze_bindings_for_remediation(bindings: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Analyze IAM bindings to identify which should be removed vs preserved.
+
+    Based on PRD requirements:
+    - Remove individual email bindings
+    - Preserve groups ending in @googlegroups.com or @[domain].com
+    - Preserve service accounts (no false positives)
+
+    Args:
+        bindings: List of parsed IAM bindings from policy changes
+
+    Returns:
+        Dict containing categorized bindings for remediation
+    """
+    individual_emails_to_remove = []
+    groups_to_preserve = []
+    service_accounts_to_preserve = []
+    other_principals_to_preserve = []
+
+    for binding in bindings:
+        role = binding.get('role', '')
+        individual_emails = binding.get('individual_emails', [])
+        group_emails = binding.get('group_emails', [])
+        service_accounts = binding.get('service_accounts', [])
+        other_principals = binding.get('other_principals', [])
+
+        # Analyze individual emails - these should be removed
+        for email in individual_emails:
+            if should_remove_individual_email(email):
+                individual_emails_to_remove.append({
+                    'email': email,
+                    'role': role,
+                    'reason': 'Individual user email detected'
+                })
+                logger.debug(
+                    f"Identified for removal: {email} with role {role}")
+            else:
+                logger.warning(
+                    f"Individual email {email} did not meet removal criteria")
+
+        # Analyze group emails - these should be preserved
+        for email in group_emails:
+            preservation_result = should_preserve_group_email(email)
+            if preservation_result['preserve']:
+                groups_to_preserve.append({
+                    'email': email,
+                    'role': role,
+                    'reason': preservation_result['reason']
+                })
+                logger.debug(
+                    f"Group preserved: {email} ({preservation_result['reason']})")
+            else:
+                logger.warning(
+                    f"Group email {email} did not meet preservation criteria: {preservation_result['reason']}")
+
+        # Service accounts - always preserve
+        for sa_email in service_accounts:
+            service_accounts_to_preserve.append({
+                'email': sa_email,
+                'role': role,
+                'reason': 'Service account - always preserved'
+            })
+            logger.debug(f"Service account preserved: {sa_email}")
+
+        # Other principals - preserve by default (domains, allUsers, etc.)
+        for principal in other_principals:
+            other_principals_to_preserve.append({
+                'principal': principal,
+                'role': role,
+                'reason': 'Special principal type - preserved by default'
+            })
+            logger.debug(f"Other principal preserved: {principal}")
+
+    return {
+        'individual_emails_to_remove': len(individual_emails_to_remove),
+        'groups_to_preserve': len(groups_to_preserve),
+        'service_accounts_to_preserve': len(service_accounts_to_preserve),
+        'other_principals_to_preserve': len(other_principals_to_preserve),
+        'removal_candidates': individual_emails_to_remove,
+        'preserved_groups': groups_to_preserve,
+        'preserved_service_accounts': service_accounts_to_preserve,
+        'preserved_other': other_principals_to_preserve
+    }
+
+
+def should_remove_individual_email(email: str) -> bool:
+    """
+    Determine if an individual email should be removed.
+
+    Args:
+        email: Individual user email address
+
+    Returns:
+        True if the email should be removed
+    """
+    if not email or '@' not in email:
+        logger.warning(f"Invalid email format: {email}")
+        return False
+
+    # Basic email validation
+    if email.count('@') != 1:
+        logger.warning(f"Invalid email format (multiple @): {email}")
+        return False
+
+    local_part, domain = email.split('@', 1)
+
+    # Skip obviously invalid emails
+    if not local_part or not domain:
+        logger.warning(f"Invalid email parts: {email}")
+        return False
+
+    # Skip service account emails (they should be categorized as service accounts, but double-check)
+    if domain.endswith('.iam.gserviceaccount.com'):
+        logger.info(
+            f"Service account email detected in individual list: {email}")
+        return False
+
+    # Individual user emails should be removed
+    logger.debug(f"Individual email approved for removal: {email}")
+    return True
+
+
+def should_preserve_group_email(email: str) -> Dict[str, Any]:
+    """
+    Determine if a group email should be preserved based on PRD requirements.
+
+    PRD Requirements: Preserve groups ending in @googlegroups.com or @[domain].com
+
+    Args:
+        email: Group email address
+
+    Returns:
+        Dict with 'preserve' boolean and 'reason' string
+    """
+    if not email or '@' not in email:
+        return {
+            'preserve': False,
+            'reason': 'Invalid email format'
+        }
+
+    # Basic email validation
+    if email.count('@') != 1:
+        return {
+            'preserve': False,
+            'reason': 'Invalid email format (multiple @)'
+        }
+
+    local_part, domain = email.split('@', 1)
+
+    if not local_part or not domain:
+        return {
+            'preserve': False,
+            'reason': 'Invalid email parts'
+        }
+
+    # Check for Google Groups - always preserve
+    if domain == 'googlegroups.com':
+        return {
+            'preserve': True,
+            'reason': 'Google Groups email (@googlegroups.com)'
+        }
+
+    # Check for domain groups (ending in .com) - preserve based on PRD
+    if domain.endswith('.com'):
+        return {
+            'preserve': True,
+            'reason': f'Domain group email (@{domain})'
+        }
+
+    # For other group types, be conservative and preserve by default
+    # This prevents false positives per PRD requirements
+    return {
+        'preserve': True,
+        'reason': f'Group email preserved (domain: @{domain})'
+    }
+
+
+def log_remediation_action(log_entry: Dict[str, Any], resource_info: Dict[str, str], result: Dict[str, Any]):
+    """
+    Log comprehensive remediation action taken by Overwatch with full audit trail.
+
+    Args:
+        log_entry: The original cloud audit log entry
+        resource_info: Extracted resource information  
+        result: The remediation result
+    """
+    start_time = datetime.utcnow()
+    execution_id = result.get(
+        'execution_id', f"exec_{int(start_time.timestamp())}")
+
+    # Extract key information
+    resource_name = resource_info.get('resource_name', '')
+    resource_type = resource_info.get('resource_type', '')
+    action_taken = result.get('action', '')
+    remediation_successful = result.get('remediation_successful', False)
+
+    # Main action log
+    action_log = {
+        'timestamp': start_time.isoformat() + 'Z',
+        'execution_id': execution_id,
+        'event_type': 'OVERWATCH_REMEDIATION_ACTION',
+        'resource_name': resource_name,
+        'resource_type': resource_type,
+        'action_taken': action_taken,
+        'remediation_successful': remediation_successful,
+        'details': result.get('details', ''),
+        'caller_email': resource_info.get('policy_changes', {}).get('caller_email', ''),
+        'caller_ip': resource_info.get('caller_ip', ''),
+        'user_agent': resource_info.get('user_agent', ''),
+        'function_trigger_id': log_entry.get('insertId', ''),
+        'log_severity': log_entry.get('severity', 'INFO')
+    }
+
+    # Remediation metrics
+    metrics = {
+        'individual_emails_found': result.get('individual_emails_found', 0),
+        'individual_emails_removed': result.get('individual_emails_removed', 0),
+        'groups_preserved': result.get('groups_preserved', 0),
+        'service_accounts_preserved': result.get('service_accounts_preserved', 0),
+        'total_policy_bindings_before': result.get('policy_comparison', {}).get('current_binding_count', 0),
+        'total_policy_bindings_after': result.get('policy_comparison', {}).get('proposed_binding_count', 0),
+        'changes_made': result.get('changes_made', False),
+        'current_policy_retrieved': result.get('current_policy_retrieved', False)
+    }
+    action_log['metrics'] = metrics
+
+    # Log with appropriate severity based on action outcome
+    if action_taken == 'REMEDIATION_COMPLETED':
+        logger.info(f"✅ REMEDIATION SUCCESS", extra={
+            'resource_name': resource_name,
+            'resource_type': resource_type,
+            'action': action_taken,
+            'execution_id': execution_id
+        })
+        # Log monitoring event for successful remediation
+        log_remediation_event(resource_name, action_taken,
+                              result.get('execution_time_ms'))
+        logger.info(f"OVERWATCH_ACTION_SUCCESS: {json.dumps(action_log)}")
+    elif action_taken == 'REMEDIATION_FAILED':
+        logger.error(f"❌ REMEDIATION FAILED", extra={
+            'resource_name': resource_name,
+            'resource_type': resource_type,
+            'action': action_taken,
+            'execution_id': execution_id
+        })
+        # Log monitoring event for failed remediation
+        log_error_event('REMEDIATION_FAILURE', 'iam_remediation',
+                        f"Remediation failed for {resource_name}", resource_name)
+        logger.error(f"OVERWATCH_ACTION_FAILED: {json.dumps(action_log)}")
+    elif action_taken == 'NO_REMEDIATION_NEEDED':
+        logger.info(f"ℹ️ NO REMEDIATION NEEDED", extra={
+            'resource_name': resource_name,
+            'resource_type': resource_type,
+            'action': action_taken,
+            'execution_id': execution_id
+        })
+        # Log monitoring event for no remediation needed
+        log_remediation_event(resource_name, action_taken,
+                              result.get('execution_time_ms'))
+        logger.info(f"OVERWATCH_ACTION_SKIPPED: {json.dumps(action_log)}")
+    else:
+        logger.info(f"OVERWATCH_ACTION: {json.dumps(action_log)}")
+
+    # Log detailed analysis if available
+    analysis_details = result.get('analysis_details', {})
+    if analysis_details:
+        log_analysis_details(execution_id, resource_name, analysis_details)
+
+    # Log policy changes if available
+    policy_comparison = result.get('policy_comparison', {})
+    if policy_comparison and policy_comparison.get('total_changes', 0) > 0:
+        log_policy_changes(execution_id, resource_name, policy_comparison)
+
+
+def log_analysis_details(execution_id: str, resource_name: str, analysis_details: Dict[str, Any]):
+    """
+    Log detailed analysis of IAM bindings categorization.
+
+    Args:
+        execution_id: Unique execution identifier
+        resource_name: Name of the resource being processed
+        analysis_details: Detailed analysis results
+    """
+    analysis_log = {
+        'timestamp': datetime.utcnow().isoformat() + 'Z',
+        'execution_id': execution_id,
+        'event_type': 'OVERWATCH_BINDING_ANALYSIS',
+        'resource_name': resource_name,
+        'analysis_summary': {
+            'individual_emails_to_remove': analysis_details.get('individual_emails_to_remove', 0),
+            'groups_to_preserve': analysis_details.get('groups_to_preserve', 0),
+            'service_accounts_to_preserve': analysis_details.get('service_accounts_to_preserve', 0),
+            'other_principals_to_preserve': analysis_details.get('other_principals_to_preserve', 0)
+        }
+    }
+
+    # Log removal candidates details
+    removal_candidates = analysis_details.get('removal_candidates', [])
+    if removal_candidates:
+        candidate_details = []
+        for candidate in removal_candidates:
+            candidate_details.append({
+                'email': candidate.get('email', ''),
+                'role': candidate.get('role', ''),
+                'reason': candidate.get('reason', '')
+            })
+        analysis_log['removal_candidates'] = candidate_details
+
+        logger.info(f"🔍 INDIVIDUAL EMAILS IDENTIFIED FOR REMOVAL:", extra={
+            'execution_id': execution_id,
+            'resource_name': resource_name,
+            'action': 'ANALYSIS_COMPLETED'
+        })
+
+    # Log preserved groups details
+    preserved_groups = analysis_details.get('preserved_groups', [])
+    if preserved_groups:
+        group_details = []
+        for group in preserved_groups:
+            group_details.append({
+                'email': group.get('email', ''),
+                'role': group.get('role', ''),
+                'reason': group.get('reason', '')
+            })
+        analysis_log['preserved_groups'] = group_details
+
+        logger.info(f"🛡️ GROUPS PRESERVED:", extra={
+            'execution_id': execution_id,
+            'resource_name': resource_name,
+            'action': 'GROUPS_PRESERVED'
+        })
+
+    logger.info(f"OVERWATCH_ANALYSIS: {json.dumps(analysis_log)}")
+
+
+def log_policy_changes(execution_id: str, resource_name: str, policy_comparison: Dict[str, Any]):
+    """
+    Log detailed policy changes detected.
+
+    Args:
+        execution_id: Unique execution identifier 
+        resource_name: Name of the resource being processed
+        policy_comparison: Policy comparison results
+    """
+    policy_log = {
+        'timestamp': datetime.utcnow().isoformat() + 'Z',
+        'execution_id': execution_id,
+        'event_type': 'OVERWATCH_POLICY_CHANGES',
+        'resource_name': resource_name,
+        'change_summary': {
+            'new_bindings': policy_comparison.get('new_bindings', 0),
+            'modified_bindings': policy_comparison.get('modified_bindings', 0),
+            'total_changes': policy_comparison.get('total_changes', 0),
+            'current_binding_count': policy_comparison.get('current_binding_count', 0),
+            'proposed_binding_count': policy_comparison.get('proposed_binding_count', 0)
+        }
+    }
+
+    # Log new members being added
+    new_members = policy_comparison.get('new_members', [])
+    if new_members:
+        policy_log['new_members'] = new_members
+        logger.info(f"➕ NEW IAM MEMBERS DETECTED:", extra={
+            'execution_id': execution_id,
+            'resource_name': resource_name,
+            'action': 'NEW_MEMBERS_ADDED'
+        })
+
+    # Log removed members
+    removed_members = policy_comparison.get('removed_members', [])
+    if removed_members:
+        policy_log['removed_members'] = removed_members
+        logger.info(f"➖ IAM MEMBERS REMOVED:", extra={
+            'execution_id': execution_id,
+            'resource_name': resource_name,
+            'action': 'MEMBERS_REMOVED'
+        })
+
+    logger.info(f"OVERWATCH_POLICY_COMPARISON: {json.dumps(policy_log)}")
+
+
+def log_error_context(execution_id: str, resource_name: str, operation: str, error: Exception, context: Dict[str, Any] = None):
+    """
+    Log detailed error context for debugging and monitoring.
+
+    Args:
+        execution_id: Unique execution identifier
+        resource_name: Name of the resource being processed
+        operation: Operation that failed
+        error: The exception that occurred
+        context: Additional context information
+    """
+    error_log = {
+        'timestamp': datetime.utcnow().isoformat() + 'Z',
+        'execution_id': execution_id,
+        'event_type': 'OVERWATCH_ERROR',
+        'resource_name': resource_name,
+        'operation': operation,
+        'error_type': type(error).__name__,
+        'error_message': str(error),
+        'traceback': sys.exc_info()[2] is not None,
+        'context': context or {}
+    }
+
+    # Handle specific GCP API errors
+    if hasattr(error, 'code'):
+        error_log['gcp_error_code'] = error.code
+    if hasattr(error, 'details'):
+        error_log['gcp_error_details'] = error.details
+
+    logger.error(f"❌ OPERATION FAILED: {operation}", extra={
+        'execution_id': execution_id,
+        'resource_name': resource_name,
+        'action': 'ERROR_OCCURRED'
+    })
+    logger.error(f"OVERWATCH_ERROR: {json.dumps(error_log)}")
+
+
+def create_execution_context(context_id: str = None) -> str:
+    """
+    Create a unique execution context identifier for tracking operations.
+
+    Args:
+        context_id: Optional context identifier from Cloud Function context
+
+    Returns:
+        Unique execution identifier
+    """
+    timestamp = int(datetime.utcnow().timestamp())
+    if context_id:
+        return f"overwatch_{context_id}_{timestamp}"
+    else:
+        return f"overwatch_exec_{timestamp}"
+
+
+def store_audit_record(log_entry: Dict[str, Any], resource_info: Dict[str, str], result: Dict[str, Any]):
+    """
+    Store comprehensive audit record in BigQuery for permanent audit trail.
+
+    Args:
+        log_entry: The original cloud audit log entry
+        resource_info: Extracted resource information
+        result: The remediation result
+    """
+    if not BIGQUERY_DATASET or not BIGQUERY_TABLE:
+        logger.debug(
+            "BigQuery audit storage not configured - skipping audit record storage")
+        return
+
+    try:
+        execution_id = result.get('execution_id', create_execution_context())
+
+        # Create comprehensive audit record
+        audit_record = {
+            'execution_id': execution_id,
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'resource_name': resource_info.get('resource_name', ''),
+            'resource_type': resource_info.get('resource_type', ''),
+            'method_name': resource_info.get('method_name', ''),
+            'caller_email': resource_info.get('policy_changes', {}).get('caller_email', ''),
+            'caller_ip': resource_info.get('caller_ip', ''),
+            'user_agent': resource_info.get('user_agent', ''),
+            'action_taken': result.get('action', ''),
+            'remediation_successful': result.get('remediation_successful', False),
+            'individual_emails_found': result.get('individual_emails_found', 0),
+            'individual_emails_removed': result.get('individual_emails_removed', 0),
+            'groups_preserved': result.get('groups_preserved', 0),
+            'service_accounts_preserved': result.get('service_accounts_preserved', 0),
+            'changes_made': result.get('changes_made', False),
+            'details': result.get('details', ''),
+            'error_message': result.get('error_message', ''),
+            'log_severity': log_entry.get('severity', 'INFO'),
+            'function_trigger_id': log_entry.get('insertId', ''),
+            'original_log_entry': json.dumps(log_entry)
+        }
+
+        # Add analysis details as JSON
+        analysis_details = result.get('analysis_details', {})
+        if analysis_details:
+            audit_record['analysis_summary'] = json.dumps({
+                'removal_candidates': analysis_details.get('removal_candidates', []),
+                'preserved_groups': analysis_details.get('preserved_groups', []),
+                'preserved_service_accounts': analysis_details.get('preserved_service_accounts', [])
+            })
+
+        # Add policy comparison as JSON
+        policy_comparison = result.get('policy_comparison', {})
+        if policy_comparison:
+            audit_record['policy_changes_summary'] = json.dumps({
+                'new_bindings': policy_comparison.get('new_bindings', 0),
+                'modified_bindings': policy_comparison.get('modified_bindings', 0),
+                'total_changes': policy_comparison.get('total_changes', 0),
+                'new_members': policy_comparison.get('new_members', []),
+                'removed_members': policy_comparison.get('removed_members', [])
+            })
+
+        # Insert into BigQuery
+        client = get_bigquery_client()
+        table_id = f"{PROJECT_ID}.{BIGQUERY_DATASET}.{BIGQUERY_TABLE}"
+
+        # Insert the record
+        errors = client.insert_rows_json(table_id, [audit_record])
+
+        if errors:
+            logger.error(
+                f"Failed to insert audit record into BigQuery: {errors}")
+            log_error_context(execution_id, resource_info.get('resource_name', ''),
+                              'bigquery_audit_insert', Exception(f"BigQuery insert errors: {errors}"))
+        else:
+            logger.info(f"📊 AUDIT RECORD STORED", extra={
+                'execution_id': execution_id,
+                'resource_name': resource_info.get('resource_name', ''),
+                'action': 'AUDIT_STORED'
+            })
+
+    except Exception as e:
+        execution_id = result.get('execution_id', 'unknown')
+        logger.error(f"Error storing audit record in BigQuery: {str(e)}")
+        log_error_context(execution_id, resource_info.get('resource_name', ''),
+                          'bigquery_audit_storage', e)
+
+
+if __name__ == "__main__":
+    # For local testing
+    print("Overwatch IAM Processor - Cloud Function Entry Point: process_iam_change")
+    print(f"Project: {PROJECT_ID}")
+    print(
+        f"BigQuery: {BIGQUERY_DATASET}.{BIGQUERY_TABLE if BIGQUERY_TABLE else 'disabled'}")
