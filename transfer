@@ -1,536 +1,220 @@
- like a lead engineer, but also, and what hands on software engineering.
- So I look after two areas of this platform.
- One is the AI estate and then the other one then is the moment is like the sovereign stuff.
- But I think Dale mentioned before that there's some complications of SE clearance I remember being told when you play your, put yourself, which again I didn't quite understand why they stopped you.
- But then I then date them sort of Dale's mop.
- So when it's co-wrong, I get sent in to complete the messer.
- So I always fiddle up a little bit of writing mop.
- But yeah, I'm all the software engineer, I'm not about engineer, but I can both essentially.
- Yeah, and that's more or less my very highly highly-adreduption.
- But yeah, I'm all like software engineer, I love coding.
- So yeah, but by yourself, don't worry, for sure background and skillset.
- Well, I think probably, yeah, probably me, instead of similar, obviously I've been in the IT space for a while.
- I've moved around quite a bit.
- I've done software engineering, not really extensive.
- I've done sort of application automation.
- But over the probably last six years, I've been more around sort of the cloud and devil space.
- So yeah, I moved on quite a sort of being privileged to work with some sort of in some very interesting projects.
- So yeah, but that's why I've been doing a lot of sort of deployment and provision of sort of structure.
- And I've sort of walked over to the three major cloud platforms.
- Yeah, so I think obviously as a contractor is usually sort of from sort of from work with the tools that the clients uses, sort of micro recommendations where necessary as well.
- But it's always been indicated and we've been sort of walked around my last sort of four years.
- I've been on the Met Police project on the secret project on Agile.
- Yeah, within that sort of a sort of outsource to a talk party, to another sort of a company through my consultancy or on the GCP project as well, also because of my previous GCP experience.
- Yeah, so I've been, I mean, I think it's been more cloud and devil sort of related Kubernetes application deployment and for structural provision in CI CD.
- Yeah, this is the kind of stuff I'm really working on.
- No, so that's also not that's what we're looking for to get to get you the skills I'm looking forward to discuss this, new stuff.
- But I was also, I guess, quick question and how the free clouds and I guess which ones you think is the best, I guess the most.
- Which one do I think?
- Maths I can use.
- Yeah, which one's your favorite?
- My favorite is GCP, interestingly enough.
- I think I just find it easier to sort of understand.
- I don't know.
- I do a bit of sort of Agile as well, but my purpose is definitely GCP.
- I don't think it's as complicated as likes of AWS.
- I just don't like AWS at all.
- You know, I guess probably they have more sort of more resources.
- I know it's because of its popularity, right?
- But in terms of simplicity and I think I also like the GCP UI's question for I just find it doubly a bit sort of so spaghetti.
- Maybe it's getting better now.
- I don't know.
- Yeah, but preference and some preference GCP is definitely my preference.
- That's interesting because I'm trying to nade a press the movements.
- I find it bizarre.
- I find bizarre.
- I'm like, oh, I saw it a lot too.
- It's all what you feel the same.
- Yeah, so it's good to see that.
- I'm all over the TV.
- Yeah.
- I do a user's door actually.
- It's all my duty.
- I think the most I haven't did was Azure DevOps on one project, EOPS again.
- But that's different.
- I mean, yeah, but in general, I think I think GCP is quite easy to work with.
- And then Azure AWS for sure.
- Yeah, that's an evolution.
- Just going through a background.
- Hello.
- I was like, loud.
- Yeah, one of my cloud figures.
- I was using the GCP.
- I guess I guess I don't think I know.
- But there is do you have any machine and experience or have you dialled it?
- If I don't know what, we're not looking for machine and experience.
- I'm just curious.
- I mean, on my own, I'm sort of, but commercially I've done sort of had a sort of easter存 video.
- But on their own I've sort of, yeah, doubled into, into it, you know, to obviously, I mean to understand what is, sort of what is on about?
- You have tried to do some sort of local sort of model deployment.
- by I kind of understand what is going on, but obviously, but don't be privileged to have a sort of commercial experience, but I know what is going on in this space.
- That's fine.
- Yeah, not only look at the like an English animal expert.
- I just curious because we're sort of similar in that stem.
- So Sally who, before she came life last week was all I saw ML engineer and S.
-E.
- S.
-M.
-E.
- And I guess for context, so her and Jan came from another team, which originally ran the ML platform.
- What happened was they were doing it for about two to three years, but they were effectively graduates.
- They were public, a group brick and they were sort of brought in as BTFD.
- There were really effective engineers, but they're leadership just hand and just like let them be just, they're no strategy.
- What was happening was we were getting complaints from end users saying why is the AI platform in such a shambles?
- And then what made it worse was we have contacts in Google.
- And they were called to me in the Google conferences saying we're hearing complaints about AI in a very hard x y-set.
- So I was sort of sent in, like I said before, I was at the mop to go in and see what was going on.
- And it was, it was tragic what happened was that the leadership team just walked away.
- They didn't really put 11 to the platform.
- So I basically said to Dale, we need to take up the AI space because of this rate system of crash and so what happened then is I took the all the engineers I could and four shows and he given Sally and Jack, others were great at team.
- And we rebuilt it from the ground up as a leader of AI.
- And the reason it's called lunar is I don't know if you've seen the terrible terrible frame of the clock terror.
- It's like terror than the earth.
- I thought let's take the moon is like a small step for us.
- And that's why it's called another again, cheesy name, but the brand in at least I find it is quite strong.
- So we took that over to just over two years ago, just a few years ago, now, and if I just show you some slide to set just to give you a sense of what we're trying to do.
- And I'll talk about where I think your skills are in really useful.
- So there's just some side by so in essence, the problem with the old world was it was very cumbersome, very messy, nasty, pretty serious, imagine all of Python.
- Turns the CIFRs didn't do much.
- So what we're down to do is we re sort of stabilize the entire platform to sort of separate from what the free things are dead scientists wants.
- And what we worked out was actually sort of free areas of machine learning, we see it.
- So what we call is our basic team.
- So I use to do a service catalog inside GCP.
- Which seems to look.
- Yes.
- Yeah.
- Yeah.
- Yeah.
- Yeah.
- Cool.
- So we have a service catalog, which has like the text of books, big a sweet like our Python, then we go, you know, basic plusers, like a spring your own container.
- Yeah.
- And they're like, buckets and data sets.
- So the view of the world is that say your data scientists, they don't want an entire form, they don't want to set CIFRs, they just want to get going as soon as quickly.
- Yeah.
- We machine learning.
- So basic tears like, you know, I want to know, work here's no book in one minute, you know, off you go and start playing.
- And then that, you know, helps our researchers and our data scientists just got off quickly.
- But what then happens is how you move there into more mature pipeline.
- And this is where the original F.
-R.
-T.
- were the call it was the template came into effect and we'll be re-brubbing down to so there's sort of two types of tears.
- There's all we put intermediate and in advance.
- So in intermediate, we have built an opinionated framework, which I'll do an amazing little look and just have a note.
- And that contains a very pinnacle, certainly pipeline, a pinnacle set of Docker images.
- So we pre-bumble them and stick them to the central registry.
- Yeah.
- Our tariff of modules and in a suite of Python packages like SDK and CLI.
- Yeah.
- And what happens then is an ML engineering team can hide rates, get repo from it.
- And they can literally train, I think it's like a actually boost penguins data set in like two minutes.
- Yeah.
- The idea is they can take that intermediate tier and we're very little understand Docker.
- They can just use the existing tool into build a full end to end pipeline.
- And that was the main missing component and complain of the previous one was this great you have all this tooling, but I just need to say fast.
- So that's what continue to give you and the sort of just basic intermediate is like, you know, we're not making this transition easy.
- We need ML engineers here to actually take the work from the data scientists to and make your production great because what's happening was the data scientists would become ML engineers, and they would just chuck it all sort of messes over the fence.
- So we're trying to provide a clear segregation of duties to make sure that ML engineers is properly followed.
- But then there's a sort of fringe set of users we call the advanced users.
- And these are people who know what they're doing.
- They're very experienced ML engineers.
- They want, you know, this is intermediate.
- We also want to be able to customize it.
- So a vast tier is essentially into the infrastructure down.
- So they can still use the custom modules and darker majors, tariff form, etc.
- But ultimately, they can build their own darker majors to meet test techniques.
- So for example, I've not seen anyone use like tar as a TensorFlow or pie torch, but there are some people who actually want to use it so they can go down this room.
- 
- And then when it gets on the work stream and there are some let's say tricky customers inside our platform, and hopefully you'd have after interacting.
- And won't be called exceptional.
- So these are people who just built their own platforms when the existing team of build marine stuff.
- And a current world, we were to the time trying to sort of wriggle them back into a managed platform world.
- It's sort of got to a point where they're in their own world, and it just it completely differs to what we're trying to do.
- But the long term ones who would try and use ML engineers experience to build back into the system.
- So this is more focused on the predictor side.
- This is the only real area being well established.
- I don't have any questions on the free tier so far.
- That's just the high overview of how Lever's carry structured.
- Wow.
- I mean, it's really, I mean, you say you've done this over the special for less than two years, you say?
- Yes, it's been out for a year, so two years, and we're just still just sort of enhanced it.
- So this is all just, you know, I should contemplate it's just a simple, again, you probably might come across a single coupon.
- It's a mansion, a Python compile and that firms Python going to YAML.
- And then that's bits out.
- Based on massive GRPC proto buff that interacts with the text pipelines, just seeing that template.
- So you just all see what I'm about.
- But yeah, it's it's well established.
- We have a couple of teams using it.
- A lot of our over each users, for example, on basic.
- So they're currently doing a lot of research and experimentation.
- So they they really love the product.
- And on this side, we have more the ML engineering space.
- There's a assisted team managed by a man or Julian birds.
- And we work room closely because he essentially has both of the ML engineers in digital.
- And so, I don't know if that's a react.
- But the one problem with this workflow is GUIs.
- So the problem you are, he's not happy.
- Okay, GUIs, okay, okay, sorry, okay.
- Yeah.
- And what we've seen is as a complaint.
- And this is more the problem of our platforms.
- I don't know how much you know of the relationship between us and the team called DCP, you know, Jan has talked about the past.
- Well, no, I think I find an interaction with them.
- Yeah.
- Okay.
- So in inside our little order, GCP, we're the biggest tenants.
- So we just, you know, stomach screeners, you can sort of see what we're about.
- They just share this view.
- And so we're CDH.
- We sit under this folder here.
- Can't take them.
- So we owe anything below this, this folder.
- Yeah, but we're not, we're not the only organization.
- So, well, myself and Dan, how access to view when we were effectively super admins, we've lost those rights.
- But the second team is called DCP and they're managed by a guy known as Simon Howe, who's being managed by Philip, that he's on family as well.
- And they sort of enforce what we can and can't do as a part of friendship agreement about the analytics space can do.
- So we are technically not allowed host applications.
- If you've got an application, let's say you got like a web app or like an R shiny studio or a post it or whatever, you're technically meant to go inside this app space and this managed by the second team at the DCP.
- So they can basically drop everything.
- And there's this sort of fine line with the AI space would withdraw because a lot of AI systems are effectively applications that they're still in the full software life cycle, but you have this second component, which needs to be literally trained all the time.
- So there's a fine line we're walking.
- But one of the questions you always got was, you know, CDH is great, but I can't expose low bounces.
- I can't build you eyes, you know, and start to just cloud run each item point, so function or whatever.
- Now, now what happened was between that time, there was a very pinnated architect who I'll say his name is called Tim Olam.
- I'm pretty nervous to meet him.
- I'm not missing that.
- Hopefully you never have to meet him as well.
- Strong opinions also just very well.
- He's Google.
- That's all of the conversation.
- And he fell of a Kubernetes.
- It's a good thing when it is actually bad decisions.
- And he built the pants and put Arkham, which is spelt this way, not too competitive.
- Oh, Arkham.
- Yeah, the Arkham for Batman, which I call it.
- Yeah.
- Now, what this really is is their definition of Kubernetes and I try to find a really good diagram that does it justice, but I guess this is the gist of it.
- And it's very, very, very complicated.
- But what they envisioned in their mind is they their tens of strategy is trying to move away from the power of items, which assumes that backwards.
- So it's all the way now for the new trend.
- I was about sovereign cloud and know how you make your deal with hybrid cloud, how you can move across all the free platforms seamlessly.
- So in Tim's strategy, he is now looking at open source of equivalent to the Google ecosystem, the Amazon ecosystem, and the Azure ecosystem.
- And what they come up with is this Arkham pattern, which to be honest, is sort of halfway, it meets the middle where they yes, that there is a lot of abstraction for open source technologies, but it's also a dependency on some of the Google, AWS components.
- Now, what's happened with Arkham is the renamed of one cube.
- Unfortunately, the team that's responsible for the Arkham pattern, I sort of ditched GCP.
- Oh, and the rationale for that was we were the biggest user of it.
- There was a team which, I don't know if you met Ebers, another team is Undistail, which we call, oh, they called, I forgot what they call now, Ropolo, computers.
- Who was it?
- No, did apps.
- A little day, actually.
- Yeah.
- Okay.
- I think I'm using art.
- But they look after all the Arkham clusters we have to date.
- And I got one provision for Luna.
- But it's sort of been left to root.
- And I want to sort of rebrand it, rebuild it in a way that allows the scientist and engineers to rapidly deploy UIs and we're out really having to wipe out Kubernetes into the hood.
- Yeah.
- But you know, the one who they can do it.
- Now on this panel, I don't actually use these tools, they have like our CD.
- Yeah.
- Garpenter and all that.
- So usually prime in community, we know more that be at this rate.
- So this diagram is atrocious, but I'll try and find our single-incy stocks you never read.
- But the just what I'm looking for is, you know, your skills, who tries to eat our true to us, because you probably have more Kubernetes experience than all of us combined.
- So what has been some point to be next quarter, or you know, whenever those capacity is if you can have a look at the Luna Arkham cluster and even you know, build out and design and engineer a framework where we can offer data scientists away to onboard rapidly and host a UIs.
- Now, there's not much there at the moment.
- There's just the blank cluster.
- And then here's what's only been going to date me and Zach are currently abusing it for a gen acquibre they'll call the listen engine.
- So you'll see a lot of references that but there's only one of a user.
- For sure, I can't see them, which I need to kick off.
- There are some lessy quirky decisions that we made.
- So for example, the architects in the infinite wisdom have done a one repo per environment, which I think is absolutely bonkers.
- So to move from depth to project to physically copy or you can from when we go to another, I don't agree with that.
- I want that done.
- And a lot of it is all based on how I'm template.
- So a user, an engineer has to write how they just type that they write the home config here and then just flip it down and I will do it.
- But again, what I'm looking for long term at least is to have a pattern where, you know, we can then help template a debt scientist doesn't necessarily care what works because of the values of the devil, but they can say.
- It's like a tailor.
- Yeah, it's more.
- So that's the highlight of what I'm looking to achieve.
- I don't know if you've got any questions or thoughts or opinions.
- No, I think I have an idea of what of you are almost more like a more like a service really.
- Yeah, like a catalog way you can just this is what I want just specify a few things and in the back end, everything just sort of kicks off and provides some more like a platform where the data engineer or the ML guys can do whatever they want to do basically.
- Yeah, yeah, yeah, yeah, I get it.
- I get it.
- So and all this in terms of obviously, I mean, I still need to do obviously really a lot of some sort of some of this because it's fairly sort of an e to me.
- What sort of time frame are you looking at for for for this kind of delivery?
- So the moment it's about to be more based on what Varsha has next quarter.
- Linoa can was meant to put up this quarter, but it basically got lost the E-Fil other work.
- I don't know, Varsha, we got a strict roadmap for what's the next quarter, but ideally, because you're in the team now, and you have the skill sets, I will try and get this down next quarter one away.
- Okay, okay, okay.
- Yeah, and I think I need to remember if we wanted to kind of have the AI offering as part of the Linoa advanced as well.
- I'm not sure which tier we want to do it, but bringing in Gemini into it.
- That's different point.
- Okay, that's different.
- Okay, okay.
- Yeah, but it's actually what you do already, Varsha.
- So I guess on top of all, and Joe, it is I don't know how much for the show with the general, and my V can just died.
- And great.
- Sorry, one second.
- Just do a few tracks.
- I can't get anything.
- So as Lash mentioned there, as well, there's also the gen aspect of it.
- Now, this is a sort of another sort of open question in the platform.
- So at the moment, I've challenged the architects in an in-carat in a guy, a team of Karen, and the Karen to look at Jenny, I and actually get patterns of run.
- There's also a sort of sub-component of this where as Varsha, and through the tiers, there's also integrate Gemini into this offering.
- Now typically, we're generally up to your chat interface.
- So as it was all that, what we could do is have a tier that allows for, you know, instead of dem define the helm, they can just put a streamlet template and put their parameters into a Gemini or templates on streamlet, etc.
- whatever chats is in it.
- So yeah, on the arc on the side, it's, you know, with I and that sort of templates.
- And then, you know, potentially as Varsha bring that into the tier system.
- Again, it's not that point clear, there is a separation duty here because I don't know if it's already there are multiple git lab instances.
- We have yeah, yeah, yeah, yeah, yeah, it'll then you want.
- Yeah, we have green side new, we have green side old and then Arkham sits on red side, which is another flavor of git lab.
- And red side and green side can't talk to each other.
- But for some reason, again, that's above my pay grain and the architects, they said all archer reports must be the red size.
- So again, it's finally, I have the medium of how we balance out this experience.
- I lost a Ken, I got a dad, but yeah, that's working from my last is how we just build first the first thing is can we just get new archer running and offering that allows teams to post that apps and doing the way that you know, allows to achieve their goals.
- Now adoption like this might be a bit slow at start because there is a so Julian on the MR side is, let's say doing some acts of cloud run, but overall and then push away from and try and get them down our approach.
- But yeah, once we get this up, I've been growing, once we get this up and running, we'll get more adoption because over each example are really keen to get you eyes up and running quickly.
- So again, this is just helps sell that vision.
- The number of comments I say now.
- Yeah, once you're going on, going on, hoping that we'll then kick off the ability to genie, and I'm going to get genie island will have a full suite of why we see as an AI experience.
- And yeah, I don't really know if we have ingress in here.
- This is the other thing.
- So I think that level is where it comes in GT.
- But I think we'll be good for you as well just to get a sense and ask us, who are the other clusters to sort of see how it's all structured in case?
- What's happened is the original lead of the arc and for our GCP, he had strong opinions, which I disagree with a lot.
- But anyway, he was a little bit sooner where you wanted it.
- But now we owe this.
- I think it would just be generally good as well to get some best practices and try and share that with the arc and team.
- Because yeah, overall, I think archavers are aware of a core one cube in the future will most be detected by its end users.
- And if needs be as well, you can say now all the arc and pattern, let's go with X, Y, and Z on a walk through the next best.
- That's perfect.
- I've got to grab some of that since the arc and pattern is dead.
- One can argue we are the King's or own Kingdoms or you can do what we need.
- But yeah, that's what I'm looking for.
- You know, using your experience to sort of make a Kubernetes pattern that is actually fit for purpose is opposed to being.
- I think it's a pin need.
- Yeah, I mean, it's just, I'm just sort of from, I agree with what you say.
- I'm just looking at it.
- I mean, obviously, I don't know, like this, I'm talking about, obviously there was to be a lot of learning curve and sort of nuances of gotchas, you know.
- So it's probably go from a known place.
- You know what I mean?
- Just move on with these are strength, I suppose to be.
- Yeah, try to on coval things as you go.
- Yeah.
- Yeah.
- I guess a quick question.
- Do you have an experience of Estuar by James?
- Estuar?
- Yes.
- Yeah, I've deployed them Estuar whilst working at an admiral.
- I would eat this.
- Yeah.
- So don't be the visitors.
- Don't know reason I ask is this.
- Arkham's got a lot of Estuar in it and I'm curious based on if you start from a fresh like war Kubernetes is this your appropriate?
- Because again, not really do service measures, but I think it was used to help define how low bands that use it is I GCP.
- I try and share some docs on the single hybrid subnet pack, which allows you to create.
- Kubernetes workloads, but instead of exposing external like low bands, you do it by internal low bands, excuse me, and it's less of a fact less.
- They get things working quickly.
- So I'll try for the docs lab.
- But yeah, I'm just curious, you know, you know, it do actually need a skill is there still the kill, you know, can we leverage it so you can just all the sort of things based on your experience?
- Yeah, that's what you want to look for.
- Yeah, I can go ahead and quit the budget seller and then back the jits part of the full off week.
- Yeah.
- Things I really want to tell them.
- Yeah, yeah.
- So I know my my my my sense of my or off storm my experience of working with you was more deployed and eventually migrate it to to Antos Google Antos.
- Yeah, yeah.
- Yeah, well, I mean, it would be sort of again, I'm sort of a model.
- I don't know, it would be good to work is there going to be an architect or someone I can also so occasionally just obviously you are going to be offered someone you can talk to or just run your sort of ideas or sort of true at all.
- I don't know, like I can speak to Dale or is he your absence?
- You could say Dale definitely.
- Unfortunately, in terms of BT in the the surrounding area, I don't think anyone really has any true Kubernetes experience is my not a vast if you know someone different, but a lot of the architects we deal with that are much on the fence of learners, go about streaming.
- You know, anyone?
- But good news, I don't think anyone from CDJ architecture has unless Steve Lewis is a benefit.
- Right?
- Be too interesting.
- Okay.
- What I would quite suggest that you is have your strong opinions you know, build up what you think and maybe take it to be like Steve Lewis.
- I can share a contact with the introduction of him.
- The he loves playing and think of and stuff.
- Okay.
- But yeah, I think on this case, every you know, how we were considered age is we sort of find what we think.
- We want to know what we want to do.
- And then we tell the architects we do our work.
- Yeah, again, I wouldn't really want to put you for the tip about Tim Oldham because there's such strong opinions.
- Even though you may be technically sound and perfectly valid and right, they just can't grasp that their world of view has been challenged.
- But what we can potentially do as well is once this other platform called one for engineering gets kicked off, maybe there are compatible there, there's an arc and we'll be shared that we can look at that, but you know, why would say is to find what you think is the right approach.
- And you know, people in our team will definitely champion it.
- Okay.
- Cool.
- That's a nice good service.
- Yeah.
- Sounds very, very interesting though.
- Yeah.
- Yeah, and again, you know, feel free to try and think of a loon if you want to.
- This is the little template just for reference.
- So it uses a Python package called Coppia.
- It's like a really terrible version of backstage by Spotify.
- But for us, it does the job.
- So basically it's like, imagine something ginger and integrate that into a template and a hydr into what you want.
- So it looks like a lot, but when you actually build the actual repo at the end, it's slim based on if you need intermediate or if you need advanced.
- And again, I think you should access to all of this stuff.
- Yeah, please, I just share some of the pages with me.
- So I can look.
- Yeah, definitely.
- I will show you a little bit of your review as well.
- Just so you can already read.
- Yeah, for sure.
- Again, this gives you.
- Again, you should see all this stuff.
- It means.
- I need to watch.
- Try this one.
- If not, I need to bump you up because I think there are some documents that you can't see a letter of in ice group.
- So I'll try and figure that out.
- Let's see.
- It's okay.
- I'm not going to see any of this stuff now.
- I'm just going to check.
- I'm just trying this link as well.
- I'll check your access to the old area.
- Okay, I think I've got, yeah, got access to the confluence.
- I'm going to say that's the Luna GitHub.
- Okay, yeah.
- I'll go to access here.
- I'll go to the bot.
- Oh, three of them now.
- Let's try.
- To try the bomb and ask all the primary stuff.
- I don't have access.
- I don't think I've got access to the Luna.
- The last one.
- The Luna CLI.
- Okay, I'll give access to that.
- This isn't the old area.
- I have an appetit entrada, actually.
- It makes your choice.
- I can't type now.
- And there's these two easy things.
- I'm prioritize, um, I have time.
- In fact, I've been too microscopeal at some points, which available very soon, look in the step one.
- Yeah.
- There are bags of talks back, cool.
- Have a read.
- Hopefully it makes sense.
- Oh, Pl<|ar|> stall.
- If you've got any questions or let me know but yeah, like a model class of hire, like a ticket to the just example and then stick you on top, you know, one, etc.
- But yeah, that's what we're looking at really.
- I don't know if I should have answered, but I think that was only so I know it down.
- No, I think that was it was it a trend.
- And I was just thinking on the tagging and the news, we are sorted.
- We are going to get that Googler to work on it.
- So this was the only stuff where we thought Joe could help us with this headset.
- So yeah, I think it's it's all good.
- Right.
- Did we have any one more thing around in the existing Luna features did we have anything that was a priority to be looked at first?
- You know, the outstanding stories that that are still there in the backlog.
- We have a quick look.
- So the last only one I'm aware of is I think Sally's done it is trying to get all drift up from research.
- So we have that.
- In fact, I should who would have thought the most to show for the Varsha that the information just in case when I see these are more.
- Yeah.
- Yeah.
- OK, there's all to do.
- I think we find I need to speak to Julian, which I got caught tomorrow to understand what actually needed.
- I think the moment it's just double check and we have feature parity with the old FOTC.
- So I think it's not even a good thing to have it in.
- Sally and I went through all the stories.
- So we have kind of put it like OK, not not necessary.
- And you know, kind of try to label those stories.
- But it would help if we just do a quick scan as well, Ryan.
- Yeah, it's probably the drift detection for the one we need.
- Documentation, that's definitely the call actually train that's the one.
- Yeah, I think the main ones with these ones here, Varsha.
- OK.
- The drift detection one is interesting because.
- I guess it depends which direct type of drift we're talking about here.
- Because it's a concept drift.
- There was kind of not some kind of different type of drift.
- All the drift is some of this way.
- This is where I was hoping Sally would have missed the original issue.
- Yeah, so I'll take a look at these because they were a couple of hours.
- Easy wind.
- The other thing we might have to deal with going forward is wait some biases.
- I know Jan has a lot of work with setting up our part of that full.
- There's sort of an outstanding question mark around how we integrate the text pipeline to wait some biases.
- And I think someone in June is actually going to engineer that.
- But it might be a case of we get that person to get into the framework.
- They are hopefully more core June to more yield what we actually need to care about.
- Over and there I think some of these like nice to have.
- You can just not worry about for now.
- But I believe these name was probably some monster as well.
- But monsters use case specific.
- OK, so I am.
- I am.
- I'm going to just not move all the story to another feature.
- So this feature will continue for the next quarter as well.
- So these are the ones that we kind of prioritize and maybe you can work on them after the.
- After we kind of on board the Kubernetes Archimedia, right?
- So if we have to just give a plan to Joe, what is the first thing he has to do?
- And then the next one, which can pick up in April.
- Ryan, that's a hit.
- Yeah, what I think is why I might consider is actually getting some M&M engineers at least in June is to help.
- But as a problem.
- Yeah, so Sally and for the only person who knew M&M is doing better than anyone.
- And there is like, yeah, there's like one or two people left in one school.
- Shankar, I think it's a good engine.
- Heidi's a grad.
- I guess, Joe, I don't know how could you help?
- How could you conclude drift action?
- But I thought this concept was painful because it depends on who you spoke to.
- Yeah, I could put stuff together, but I think that we might have to reach it based on.
- What's feasible and what doesn't send Joe down spiral of getting lost?
- Because this one.
- Depends on who you talk to you.
- Strong opinions on how you should do this.
- After the June about this.
- Yeah, not so Ryan, the it should be like a priority.
- Ask from Julian, I mean, do we have enough use cases where this is going to help in the next immediate next quarter?
- If not, then we just bug it.
- Yeah, this is where I say it's like a chicken egg, Julian.
- Julian wants to push this further, but he wants complete feature parity with his old world.
- And that's being I think was pushback says he's happy to use Luna, but he wants these things queued up.
- So I don't think he's picked it tomorrow.
- He's at the level D Ryan.
- Yes, they did.
- Okay.
- But how effective it was is on the question because I said aside before, a lot of these things are different texture monitoring are dependent on the use case.
- And how do you like what?
- Why don't we play it in a way that Ryan, let's say if they are going to they know the use case.
- So and if it is already there in F L T.
- So some one of the engineers in his team can work on this.
- And that's where the angles we've gone with.
- And for sure, I need you to commit to it because he says yes to these things.
- Okay.
- I don't say he isn't go through with the decision, but yeah, I'll speak to Julian.
- Why it's that?
- Revert my call and he's accepted it.
- So I'll focus on that.
- Okay.
- Yeah, yeah.
- Medcore June 1st, I'll reprioritize this and what he actually says.
- But I have strange suspicion that he's going to bring up weights and biases in his focus.
- Oh, we'll see.
- Yeah.
- Yeah.
- Okay.
- Because from January till March, there is I haven't heard a single requirement from weights and biases.
- So what he done is.
+# Luna AI/ML Platform - Architectural Instructions
 
- 
+## Overview
+
+This document provides detailed architectural instructions for the Luna AI/ML platform on Google Cloud Platform (GCP). The architecture enables a tiered self-service experience for AI/ML workloads from experimentation through production deployment, with emphasis on UI application hosting via Kubernetes.
+
+## High-Level Architecture Context
+
+### Platform Positioning
+- Luna operates as the primary AI/ML platform within the CDH (Cloud Data Hub) organizational folder in GCP
+- Sits alongside but separate from DCP (Data and Cloud Platform) team's application hosting space
+- Provides self-service ML workload deployment with governance and standardization
+- Bridges the gap between data science experimentation and production ML application hosting
+
+### Core Design Principles  
+- Tiered user experience (Basic, Intermediate, Advanced, Exceptional)
+- Template-driven deployment with opinionated defaults
+- Minimal Kubernetes expertise required for end users
+- GitOps-based deployment and promotion workflows
+- Containerized workloads with standardized CI/CD pipelines
+
+## Detailed Component Architecture
+
+### 1. User Interface Layer
+
+#### Luna Service Portal
+- **Technology**: Web-based self-service portal
+- **Authentication**: Integration with organizational SSO/OAuth providers
+- **User Experience**: Tiered catalog interface presenting appropriate options based on user tier
+- **Functionality**: Template selection, configuration input, deployment request submission, status monitoring
+
+#### Service Catalog Integration
+- **Technology**: GCP Service Catalog integration
+- **Purpose**: Present standardized ML service offerings (notebooks, datasets, buckets, compute resources)
+- **User Flow**: Quick-start resource provisioning for Basic tier users
+
+### 2. Template and Configuration Management
+
+#### Coppia Templating Engine  
+- **Technology**: Python-based templating system (described as "terrible version of backstage")
+- **Function**: Converts user inputs and selected templates into deployable configurations
+- **Input**: User parameters, tier selection, workload type
+- **Output**: Generated repository structure, Helm charts, Terraform configurations, CI/CD pipelines
+
+#### Template Repository Structure
+- **Basic Tier Templates**: Pre-configured notebooks, simple compute instances, data access patterns
+- **Intermediate Tier Templates**: Opinionated ML pipeline frameworks, standardized Docker images, CI/CD patterns
+- **Advanced Tier Templates**: Customizable infrastructure patterns, custom container support, advanced networking
+- **UI Application Templates**: Streamlit applications, model serving endpoints, interactive dashboards
+
+### 3. Source Code Management Layer
+
+#### GitLab Instances (Multi-Environment)
+- **Green Side Old**: Legacy GitLab instance
+- **Green Side New**: Current production GitLab instance  
+- **Red Side**: Arkham-specific GitLab instance (isolated from green side environments)
+- **Repository Strategy**: Currently one repository per environment (noted as problematic architecture)
+- **Access Control**: Environment-specific permissions and deployment gates
+
+#### Repository Generation Flow
+- User submits template request → Coppia processes inputs → New repository created from template → Initial commit with generated configurations → CI/CD pipeline triggered
+
+### 4. Container and Artifact Management
+
+#### GCP Artifact Registry
+- **Purpose**: Centralized storage for Docker images, Helm charts, and other deployment artifacts
+- **Organization**: Separate registries per environment and tier
+- **Content**: Pre-built base images, user-generated application containers, Helm charts
+
+#### Pre-built Image Strategy
+- **Base Images**: Standardized Python, TensorFlow, PyTorch containers optimized for ML workloads
+- **Intermediate Tier**: Opinionated images with common ML libraries and frameworks pre-installed
+- **Advanced Tier**: Support for custom base images and containers
+- **Security**: Automated vulnerability scanning and policy enforcement
+
+### 5. CI/CD and Deployment Pipeline
+
+#### GitLab CI/CD Pipelines
+- **Trigger**: Git commits to template-generated repositories
+- **Stages**: Code quality checks, container building, security scanning, artifact publishing
+- **Integration**: Webhook-based triggering of downstream deployment processes
+
+#### ArgoCD GitOps Implementation
+- **Purpose**: Declarative deployment management for Kubernetes workloads
+- **Architecture**: ArgoCD monitors Git repositories for configuration changes
+- **Deployment Flow**: Git commit → ArgoCD detects change → Helm deployment to target GKE cluster
+- **Environment Promotion**: Separate ArgoCD applications per environment with approval workflows
+
+### 6. Container Orchestration Layer
+
+#### Google Kubernetes Engine (GKE) - Arkham Pattern
+- **Cluster Architecture**: Multi-cluster setup with environment separation (dev, staging, production)
+- **Arkham Pattern**: Hybrid cloud abstraction layer combining open-source tools with GCP services
+- **Service Mesh**: Istio integration for traffic management, security, and observability
+- **Ingress**: Google Cloud Load Balancer integration with automated TLS certificate management
+
+#### Helm Chart Management
+- **Chart Repository**: Centralized Helm chart storage in Artifact Registry
+- **Template Structure**: Standardized charts for common ML workload patterns
+- **Configuration**: Values files generated by Coppia templating system
+- **Deployment**: ArgoCD-managed Helm releases with rollback capabilities
+
+#### Kubernetes Resource Organization
+- **Namespaces**: Tenant isolation with resource quotas and network policies
+- **Service Accounts**: Workload identity integration with GCP IAM
+- **Secrets Management**: Google Secret Manager integration
+- **Storage**: Persistent volumes for stateful ML workloads, integration with Google Cloud Storage
+
+### 7. Infrastructure as Code
+
+#### Terraform Modules
+- **Organization**: Reusable modules for common infrastructure patterns
+- **Scope**: GKE clusters, networking, IAM roles, storage resources
+- **State Management**: Remote state storage in Google Cloud Storage with locking
+- **Integration**: Called from CI/CD pipelines for infrastructure provisioning
+
+#### Infrastructure Deployment Flow
+- Template generation includes Terraform configurations → CI/CD pipeline applies infrastructure changes → Kubernetes resources deployed on provisioned infrastructure
+
+### 8. ML-Specific Services
+
+#### Vertex AI Integration
+- **Pipelines**: Integration with Vertex AI Pipelines for complex ML workflows
+- **Training**: Scalable model training using Vertex AI Training service
+- **Serving**: Model deployment via Vertex AI Prediction or custom serving infrastructure
+- **Experiments**: Integration with Vertex AI Experiments for tracking and comparison
+
+#### Model and Data Management
+- **Model Registry**: Centralized storage and versioning of trained models
+- **Data Sources**: Integration with Google Cloud Storage, BigQuery, and other data platforms
+- **Feature Store**: Centralized feature management and serving
+- **Monitoring**: Model performance and data drift detection capabilities
+
+### 9. Future Extensibility
+
+#### Gemini AI Integration (Planned)
+- **Interface**: Chat-based interaction for deployment requests and configuration assistance
+- **Templates**: AI-assisted template generation and parameter recommendation
+- **Integration Point**: Within the service portal as an alternative input method
+
+#### Weights & Biases Integration (Planned)
+- **Experiment Tracking**: Automated integration with ML experiment tracking
+- **Pipeline Integration**: Seamless logging from Vertex AI Pipelines to W&B
+- **Reporting**: Centralized experiment results and model performance tracking
+
+## User Journey Flows
+
+### Basic Tier User Flow (Data Scientist)
+1. User authenticates to Luna Service Portal
+2. Selects Basic tier service from catalog (notebook, dataset access, compute)
+3. Minimal configuration required (resource size, access permissions)
+4. Coppia generates simple provisioning request
+5. Direct GCP service provisioning via Service Catalog
+6. User receives access credentials and service endpoints
+7. Resources auto-expire based on policy settings
+
+### Intermediate Tier User Flow (ML Engineer)
+1. User authenticates to Luna Service Portal  
+2. Selects intermediate template (ML pipeline, model serving, batch job)
+3. Configures parameters (data sources, model artifacts, resource requirements)
+4. Coppia generates complete repository structure with CI/CD pipeline
+5. Repository created in appropriate GitLab instance
+6. CI/CD pipeline triggered, building containers and infrastructure
+7. ArgoCD deploys Helm charts to target GKE cluster
+8. User receives deployment status and application endpoints
+9. Ongoing monitoring and alerting automatically configured
+
+### Advanced Tier User Flow (Expert ML Engineer)  
+1. User authenticates to Luna Service Portal
+2. Selects advanced template or starts from minimal base
+3. Extensive configuration options (custom containers, infrastructure, networking)
+4. Coppia generates customizable repository with advanced CI/CD patterns
+5. User can modify generated Terraform, Helm charts, and Dockerfiles
+6. Full GitOps workflow with manual approval gates for infrastructure changes
+7. Custom deployment patterns supported alongside standard workflows
+
+### UI Application Deployment Flow
+1. User selects UI application template (Streamlit, custom web app, model serving interface)
+2. Configures application parameters (model endpoints, UI frameworks, resource requirements)
+3. Coppia generates application repository with Dockerfile, Kubernetes manifests, Helm chart
+4. CI/CD pipeline builds container image and publishes to Artifact Registry
+5. ArgoCD deploys application to GKE cluster with ingress configuration
+6. Google Cloud Load Balancer provides external access with managed TLS certificates  
+7. Application URL provided to user with operational dashboards and logging links
+
+## Integration Points and Data Flow
+
+### Template Processing Flow
+Portal Request → Authentication → Template Selection → Coppia Processing → Repository Generation → CI/CD Trigger → Container Build → Artifact Storage → ArgoCD Sync → Helm Deployment → Kubernetes Pods → Load Balancer → User Access
+
+### Monitoring and Observability Flow
+Kubernetes Metrics → Google Cloud Monitoring → Custom Dashboards → Alerting → Notification Channels → User/Operator Response
+
+### Environment Promotion Flow  
+Development GitLab → CI/CD Testing → Staging GitLab → Approval Process → Production GitLab → ArgoCD Production Sync → Production Kubernetes Deployment
+
+### Model Lifecycle Flow
+Data Sources → Vertex AI Training → Model Registry → Model Validation → Deployment Templates → Container Packaging → Kubernetes Serving → Performance Monitoring → Drift Detection → Retraining Trigger
+
+## Security and Compliance Architecture
+
+### Identity and Access Management
+- GCP IAM integration with organizational identity provider
+- Service account-based workload identity for Kubernetes pods
+- Least privilege access patterns enforced at template level
+- Audit logging for all platform interactions and deployments
+
+### Network Security
+- VPC-native GKE clusters with private node pools
+- Network policies for namespace isolation
+- Istio service mesh for encrypted inter-service communication
+- Private Google Access for GCP service integration
+
+### Compliance and Governance  
+- Policy-as-code enforcement at deployment time
+- Automated security scanning for containers and infrastructure
+- Audit trails for all deployments and configuration changes
+- Data residence and sovereignty controls where required
+
+This architectural instruction provides the foundation for creating detailed system diagrams showing component relationships, data flows, and user interaction patterns within the Luna AI/ML platform on Google Cloud Platform.
