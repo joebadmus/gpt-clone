@@ -1,53 +1,65 @@
-Read [](file:///Users/joebadmus/Desktop/sample/ryan-handover/handover.txt)
+# Leadership Update: Luna AI/ML Platform
 
-Read [](file:///Users/joebadmus/Desktop/sample/ryan-handover/luna-ai-instruction.md#1-1), lines 1 to 100
+Date: 17 March 2026  
+Audience: Leadership and Platform Stakeholders
 
-Read [](file:///Users/joebadmus/Desktop/sample/ryan-handover/leadership-update.md)
+## Executive Summary
 
-Read [](file:///Users/joebadmus/Desktop/sample/ryan-handover/summery-note.md)
+Luna has significantly improved the AI/ML platform foundation by replacing a fragmented legacy setup with a structured tiered model. The next critical milestone is enabling a scalable, low-friction Kubernetes-based UI hosting capability so teams can move from model development to production applications faster.
 
-Here is a clear summary of what the Luna work is trying to achieve:
+## What Has Been Achieved
 
----
+1. Stabilized and rebuilt the AI platform approach after previous ownership and strategy gaps.
+2. Defined a clear tiered operating model for users:
+3. Basic tier for fast experimentation (quick-start resources).
+4. Intermediate tier with opinionated engineering path (templates, CI/CD, Docker, Terraform, SDK/CLI).
+5. Advanced tier for highly experienced teams requiring customization.
+6. Improved platform usability for data scientists and ML engineers by reducing setup complexity in the core journey.
 
-## Luna Platform — What We're Trying to Achieve
+## Current Strategic Focus
 
-### The Core Problem
-The previous AI/ML platform was fragmented, poorly led, and unusable. Luna was rebuilt from scratch to replace it with a structured, self-service experience that takes teams from experimentation all the way to production.
+1. Close the gap in UI/app hosting for AI workloads.
+2. Rework and operationalize the Arkham Kubernetes path to be practical, supportable, and adoption-friendly.
+3. Provide a template-led onboarding model that minimizes Kubernetes expertise required by end users.
+4. Prepare for broader integration patterns, including potential Gemini/gen-AI enablement in the tiered offer.
 
----
+## Why This Matters
 
-### The Tiered Platform Model
-Luna offers three user journeys:
+1. Current friction slows the path from experimentation to production delivery.
+2. Inconsistent app-hosting patterns increase operational risk and support burden.
+3. A standardized approach will improve delivery speed, governance, and reuse across teams.
 
-| Tier | Who It's For | What It Gives |
-|---|---|---|
-| **Basic** | Researchers & data scientists | Notebooks, buckets, datasets — running in minutes |
-| **Intermediate** | ML engineers | Opinionated templates, CI/CD, Docker, Terraform, SDK/CLI |
-| **Advanced** | Experienced ML engineers | Full infra customization, custom containers, non-default tooling |
+## Next-Quarter Delivery Plan
 
----
+1. Deliver a working end-to-end Kubernetes onboarding and deployment pattern for 1-2 pilot teams.
+2. Publish reusable templates and onboarding guidance for AI UI workloads.
+3. Validate one reference deployment and operational support model.
+4. Reprioritize feature-parity backlog items (for example drift detection) based on real demand and delivery impact.
+5. Align stakeholders on where Gemini/gen-AI integration should sit within Luna tiers.
 
-### The Immediate Problem to Solve (This Quarter)
-There is a **critical gap in UI/app hosting** for AI workloads. The existing Arkham Kubernetes cluster exists but is over-engineered, under-supported, and hard to use. The priority is to:
+## Key Risks And Constraints
 
-1. **Redesign the Arkham Kubernetes pattern** to be practical and adoption-friendly
-2. **Build a template-led onboarding flow** so teams can deploy UI apps (e.g. Streamlit) without needing to understand Kubernetes internals
-3. **Run 2 pilot teams** end-to-end and validate the approach
-4. **Deliver a reference implementation** with documented runbooks
+1. Architectural debt and over-opinionated legacy decisions in existing Kubernetes pattern.
+2. Cross-team/platform governance constraints and unclear ownership boundaries.
+3. Repo/environment separation model may continue to slow promotion and automation.
+4. Potential scope expansion from parity asks and gen-AI ambitions without sequencing discipline.
 
----
+## Decisions Needed From Leadership
 
-### Longer-Term Goals
-- Integrate **Gemini/gen-AI** into the Luna tier model (entry point still to be confirmed)
-- Address **feature parity** gaps from the old platform (key one: drift detection)
-- Reduce the one-repo-per-environment friction in the current Arkham GitLab setup
-- Pull "exceptional" teams (who built their own off-platform solutions) back into a managed Luna model
+1. Confirm next-quarter priority: Kubernetes UI hosting enablement as a top delivery objective.
+2. Endorse a pragmatic modernization path, including revisiting legacy architecture choices where necessary.
+3. Approve pilot-first rollout model (start with limited teams, then scale).
+4. Agree sequencing between feature parity requests and new strategic capability work.
 
----
+## Success Measures
 
-### Success Looks Like
-- A data scientist can request and deploy a UI-enabled ML workload through a standard, repeatable path
-- Time-to-first-deploy for pilot teams reduced by at least 40%
-- Onboarding docs are good enough that a new engineer can deploy without escalation
-- Adoption grows beyond pilots with fewer complaints and platform blockers
+1. Time to first deploy for pilot teams is materially reduced.
+2. At least one production-credible reference deployment is delivered.
+3. User onboarding is template-driven and repeatable.
+4. Adoption expands beyond pilot teams with reduced platform friction and fewer escalations.
+
+## Leadership Ask
+
+1. Back the prioritized next-quarter scope and protect focus.
+2. Support cross-team alignment to remove platform/process blockers early.
+3. Sponsor adoption goals tied to measurable delivery outcomes, not only architecture completion.
