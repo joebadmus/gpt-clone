@@ -1,1 +1,628 @@
-NO new details
+TRANSCRIPTION: bhaskar_arcam_intro.MOV
+Date Recorded: 24 April 2026
+Duration: ~22 minutes 33 seconds
+Transcribed: 25 April 2026
+Transcription Engine: OpenAI Whisper (medium model)
+
+TOPIC: ARCAM (RCam) Platform Overview — Franchisee/Tenant Model, Luna Integration & Access Setup
+
+=============================================================================
+NOTE: This is a two-person conversation. Bhaskar (platform/infrastructure engineer)
+is explaining the ARCAM (RCam) platform architecture to a colleague who is new
+to the Luna ARCAM setup. The colleague is asking clarifying questions throughout.
+=============================================================================
+
+---
+
+[00:00 – 01:53] ARCAM FRANCHISEE-TENANT MODEL OVERVIEW
+
+BHASKAR:
+What I was saying is, in RCam, they follow the franchisee tenant model. So how do we
+do this? Franchisee is nothing but, we can say, one cluster. The entire cluster, we can
+take it as a franchisee, so where all the shared services will be hosted.
+
+So this comes with not just the GKE cluster, concept deployment automation. Along with
+that, they have a lot of observability tools, like Prometheus and Grafana, and CD tools
+like Argo CD, and Kyverno, and for policy management — all these tools, they have been
+bundled into the RCam.
+
+So, for example, Argo CD, we use it for continuous deployment purpose. And Prometheus
+and Grafana, as I said, for observability. Likewise, all this comes as a shared service.
+So all the shared services, they will be deploying in the franchisee, basically within
+the cluster.
+
+And we will be deploying all the applications into the tenant space. So in case of
+Kubernetes world, we can consider the tenant as like one Kubernetes namespace. So we are
+isolating the applications by using the namespaces here.
+
+So now, whatever the services we have, or applications which are deployed into the
+different tenants, they all can access the services which are in shared space, because
+they are in the franchisee code, or franchisee namespace.
+
+But across the namespaces, for example, one application and another application, if
+they're in two tenants, like tenant A and tenant B, these are completely isolated. They
+are not allowed to talk to each other. That's how the boundary is actually set. That's
+how the entire RCam has been built.
+
+---
+
+[01:53 – 02:30] CLARIFICATION — NAMESPACE ISOLATION RULES
+
+COLLEAGUE:
+OK, so if I understand. So basically, I mean, besides the shared services that resources
+within the namespaces can talk to, the resources across namespaces cannot talk to each other?
+
+BHASKAR:
+Correct.
+
+COLLEAGUE:
+OK. So across the namespaces, basically the tenants. So applications across the tenants,
+they cannot talk to each other.
+
+BHASKAR:
+Correct. Applications can talk to the applications in the shared namespace.
+
+COLLEAGUE:
+To the franchisee, OK.
+
+BHASKAR:
+That is, with the shared namespace — nothing but being the franchisee code. Just being
+the overall architecture or framework that RCam will provide.
+
+---
+
+[02:30 – 03:09] GCP CLOUD SERVICES INTEGRATION
+
+COLLEAGUE:
+OK.
+
+BHASKAR:
+So now, once we understand this, so along with these Kubernetes services, it also provides
+a facility to use the underlying cloud-provided services. For example, in case of GCP,
+the GCP Secret Manager, the GCS buckets, and Artifact Registry. All these can be
+provisioned from the franchisee code only and can be used within the cluster.
+
+OK. So this is one more feature of the RCam.
+
+---
+
+[03:09 – 04:09] DOCUMENTATION & CODE REPOSITORIES
+
+BHASKAR:
+So now, if you come to AutoGates — this is fine. So now, this will have a lot of documents
+here saying that how to create a new franchisee or how to onboard an application onto the
+existing franchisee.
+
+And the main thing is, what are all the code repos it has and how to get access to that
+code repo. And you already got access to the code repos, right? For example, for Luna.
+
+OK. So what I can show you is, I will try to show you that you can easily understand.
+
+Luna RCam, right?
+
+So here, how people are doing is, for example, it's a Luna API 3D web. So each application
+or each franchisee, if you come to the GCP world, we are creating one franchisee per account.
+For example, this BD Luna is the one GCP project and we're trying to map between the GCP
+project and our franchisee.
+
+---
+
+[04:09 – 04:46] CLARIFICATION — LUNA AS A FRANCHISEE
+
+COLLEAGUE:
+Sorry, I think I got you wrong. You said, so you're trying to create one franchise per account.
+So Luna has got its own franchise. Then we just need to...
+
+BHASKAR:
+Yeah. So now, Luna is a franchisee. OK? It's a franchisee.
+
+COLLEAGUE:
+OK. OK.
+
+BHASKAR:
+Yeah. That doesn't make sense. Sorry.
+
+Yeah, Luna is a franchisee. And in that, we'll have multiple tenants on it. So ODH is also
+one of the tenants. And Luna itself is also one of the tenants. So the franchisee can be
+shared by multiple tenants on it.
+
+COLLEAGUE:
+All right, so you can have multiple tenants.
+
+---
+
+[04:47 – 05:53] TENANT CREATION — PER GFU (FUNCTIONAL UNIT)
+
+BHASKAR:
+So the tenants, actually, how we are creating is, per GFU, we are creating one tenant.
+For example, on the Luna account, for example, the Luna franchisee, we have basically
+created for the purpose of building ML pipelines on top of GKE. OK?
+
+So now, people might be having the same kind of use case or application. GFUs like
+Consumers, GFUs like Networks, and Open-Source people will be having.
+
+So what we do is, to bifurcate — one thing is to isolate the resources being used or
+applications being used per GFU. And the second thing is to differentiate between the
+billing — how much they're utilizing the underlying resources. To do that, what we do is,
+we'll be creating the tenants based on the GFUs. And then, we'll be just deploying their
+applications onto it.
+
+COLLEAGUE:
+Sorry, so you've been creating a tenant based on what is GFU? What is GFU?
+
+BHASKAR:
+Yeah, GFU. GFU is a functional unit.
+
+COLLEAGUE:
+OK, functional unit.
+
+BHASKAR:
+For example, PT Business, Consumer, Network — we call it that.
+
+COLLEAGUE:
+OK, functional unit. OK, that's fine. Yeah.
+
+---
+
+[05:53 – 07:45] FRANCHISEE REPO STRUCTURE & BRANCH STRATEGY
+
+BHASKAR:
+So now, if you look at, we're basically having, for example, we'll be all these
+sub-franchises that we were talking about, right? So that will be as part of this
+particular repo. So this will have the, for example, if you go to Prod 1.0, there's a
+branch strategy being used, the way the RCam team has provided that template.
+
+So this entire franchisee repo has been provided by the RCam team, so the RCam
+development team. And as part of the tenant onboarding, we will be using that there.
+
+And once we onboard any tenant, like one ODH is one tenant on it, OK?
+
+So the application code — what we do as part of that, for example, Elysium, LLM, LLM
+Helm chart. So the second thing is we deploy all these applications on Kubernetes by
+using the Helm charts.
+
+So this particular application Helm chart, OK, those are being maintained by the
+application team. So for example, in case of Elysium, the front end or whatever is being
+done, that will be done by using — these are basic structures like the templates and
+values will be there. So that will be managed by the application team.
+
+So as a platform team, we will be maintaining the franchisee and onboarding a tenant.
+Franchisee means we'll be creating the cluster and we'll be managing the cluster and any
+resources that the application requires within the cluster — that will be managed as a
+platform team. And we onboard the tenant. For example, if they come up with a new tenant
+that has to be created on that, we'll create it. After that, the actual application code
+will be managed by the application team only, or whoever owns that particular tenant.
+
+---
+
+[07:47 – 08:16] PLATFORM TEAM VS APPLICATION TEAM RESPONSIBILITIES
+
+BHASKAR:
+OK. For example, here are all the shared services and all the Kubernetes clusters. And
+within that, the Kubernetes resources will be managed by us, the platform team. And that
+tenant also will create the namespace and the underlying node pools and the related
+resources. And the actual application will be taken care of by the application team. OK.
+
+---
+
+[08:16 – 10:04] COLLEAGUE DESCRIBES LUNA PORTAL / SERVICE CATALOG VISION
+
+COLLEAGUE:
+OK, so just before you proceed, I just want to try to understand something before we
+proceed. I think up until now, yeah, so far. So just going back a step, sort of talking
+of the franchisees as well as the tenants.
+
+So basically, so for the sort of the Luna piece, right? I think the plan is to sort of
+create a way to enable some data scientists and ML engineers to be able to deploy sort of
+UI applications, right? Without even needing to know Kubernetes at all, right?
+
+So the plan is, I suspect, so basically, we're going to have a web UI where an ML
+engineer or a data engineer just goes — more like a service catalog, right? Complete what
+they want. And once they do that, there's going to be like a template — more like a sort
+of a template behind the UI that is going to sort of kick that off, create a... and that
+is going to spin off.
+
+We need to sort of generate sort of ML pipelines. We need to generate some application
+repos, which is the ELM chart, which you just made mention of, that we need to manage on
+our side. And obviously, besides that, I generate GitLab and whatnot, right?
+
+So but my concern is, or my understanding is, so in that instance, where it is a
+possibility that there's going to be multiple tenants that will be automatically spun
+off, right?
+
+So yeah, you understand what I'm trying to say now? Possibly so many tenants, depending
+on who — obviously, who, ML engineer, ML, I mean, data scientists, whatever it is, right?
+
+And how do we sort of manage that in terms of these franchisee tenants? Because obviously,
+you did say Luna is also a franchisee. Luna is a franchisee, but obviously, the
+applications are going to be built in now, or they're going to be automatically templating
+with the tenants under the Luna franchisee.
+
+BHASKAR:
+Yeah, franchisee.
+
+COLLEAGUE:
+Correct.
+
+---
+
+[10:04 – 11:06] CURRENT MANUAL TENANT ONBOARDING PROCESS
+
+BHASKAR:
+OK. So now, for example, if multiple web applications, ML apps applications, if they want
+to do it, and if they want to develop a service catalog kind of thing, and once they
+select that, and if it has to — then right now, how we are doing is we are creating one
+repo, and we are onboarding a tenant for it. So the tenant basically — we are going to
+create a new... While augmenting the new tenant, you can just see this how-to
+documentation. You will get an overview — so you can see how-to guides for RKM also. So
+whenever we are creating a tenant activity, so onboard a tenant.
+
+OK, these are all the documents which we have, so you can go through.
+
+COLLEAGUE:
+Yeah, please — you're saying the link, yeah, or different?
+
+BHASKAR:
+Yeah, I already shared it.
+
+COLLEAGUE:
+OK, that one. OK, OK, I've got that one here. Cool.
+
+BHASKAR:
+Yeah, same thing, that will have all the details. So now, I'll try to give you an
+overview — so what actually you are trying to achieve, and whether that be how far it's
+going to be doable, that we will check.
+
+---
+
+[11:06 – 12:19] PLATFORM TEAM'S PROCESS FOR DEPLOYING A NEW TENANT
+
+BHASKAR:
+But for now, what we're doing is, for example, you want to deploy a new application. So
+we will get the requirements from them, saying that what is the kind of application you
+are going to deploy, and what is the node pool you are actually looking for — underlying
+node pool configuration.
+
+Because all the remaining shared services will be fine, but whenever we are creating a
+new tenant, we'll be creating a namespace for them. Along with that, obviously, we are
+going to create one node pool for them.
+
+So depending on the application requirements, we'll decide on what kind of a node pool
+they need, and what could be the specifications. For example, does it need four nodes
+underlying, and minimum could be two nodes, and it can scale up to 10. So that's all the
+kind of the math we do, and then we'll create that.
+
+Along with that, we will try to create them — whether it's in a web app, or whether it
+has to be exposed to the Ingress gateway, and all those things, we will try to
+accommodate. And they'll do that — the remaining application part they'll do. The actual
+application part, how it has to be done, they'll do that.
+
+Remaining, the infra related to that application, around that, we create that. That's
+where we're doing it manually.
+
+---
+
+[12:19 – 14:05] AUTOMATION GAP DISCUSSION
+
+BHASKAR:
+For example, if we have to be automated, then our portal should be able to create a
+GitLab repo, and get it linked with existing franchisees, so that this new tenant has to
+be created automatically, and get the application to be deployed on it.
+
+So now, how to do that, and what's the better way to do it, I'm not sure on that.
+
+But right now, this is what we are doing. And right now, to create any tenant also, we
+have the templates, and we can get it, and then we can copy it, or we can clone it, and
+then we can modify it according to our requirement.
+
+But if you want to make this automated, and once you submit, all this process has to be
+done in the back end, and if it has to be created, we don't know how to do that
+automation.
+
+COLLEAGUE:
+Oh, okay. So, I mean, but does, again — I think it's good, I think we're having this
+conversation, but is it because the current capability does not support that, or is it
+just a case of a knowledge thing? I just want to understand.
+
+BHASKAR:
+No, current capability is like, we have automated creation of resources — creation of
+the cluster, and then all the Kubernetes, the deployments, and all Kubernetes-related
+objects, and all the infra.
+
+But we are trying to automate to the next level — that whatever setup we are doing, that
+itself we want to automate. That right now we would not have that capability, so that's
+something we need to build. For example, if I want to create a repo, and define the
+values, and modify the values according to our requirement, and then deploy that.
+
+Now, I understand that you want to automate this also, right?
+
+COLLEAGUE:
+Yeah, yeah, yeah, yeah, yeah, yeah yeah.
+
+BHASKAR:
+It should be able to create that back end, GitLab repo, and all this.
+
+COLLEAGUE:
+100%.
+
+---
+
+[14:10 – 15:16] CURRENT DEPLOYMENT METHOD — HELM CHARTS & ARGO CD
+
+BHASKAR:
+So either, yeah, either we can achieve this, or if there is any better way to do it
+automatically. For example, right now we already have a cluster, which is running on a —
+which we are calling it as a franchisee, in our ARCAM world.
+
+And basically, it is going to be underlying GKE cluster, and we are deploying an
+application. Right now, how we are deploying the application is, we are creating a GitLab
+repo, and getting the Helm charts deployed there, and getting that application created, or
+deployed through Argo CD. This is how we are doing right now.
+
+Now, if we want to automate this itself — is this method works, or do you want to figure
+out a different method, I'm not sure. Maybe, what is another way of automating
+applications onto Kubernetes?
+
+The Helm charts is one way of doing it, but the Helm charts also need all the templates,
+and everything to be created, and that is why we are creating them, and maintaining them
+in GitLab. Maybe around that, we need to do some brainstorm, or maybe some kind of R&D
+on that.
+
+But right now, this is how it's being managed.
+
+---
+
+[15:16 – 16:11] COLLEAGUE'S VISION — MULTIPLE REPOS, GITLAB PIPELINES, TERRAFORM
+
+COLLEAGUE:
+Okay, okay, okay. Yes, that sounds like a bit of sort of limitation, because obviously,
+again, based on my own sort of understanding of what it is, I think it's going to be
+quite — obviously, this is what I see. I see, obviously, the ability to sort of creating
+multiple tenants, you know, and these tenants will need to sort of be able to talk to
+GitLab — I mean, from a couple of means, you need to connect a couple of GitLabs, right?
+
+Where, obviously, you have the AlgoCity, which I think you already have — for instance,
+you already have, we're going to need to sort of set up a pipeline for — GitLab pipeline.
+We will also be able to, also have a sort of repo for the actual code the data scientists
+will be writing, we're going to have sort of another repo for the configuration manager.
+So, even the Terraform as well — so it's quite a few bits of stuff, right? It's quite a
+few bits of stuff that needs to be done.
+
+---
+
+[16:11 – 16:44] TERRAFORM & GITLAB PIPELINE — CURRENT APPROACH
+
+BHASKAR:
+Yeah, because, so here, right now, correct. So right now, to deploy this or to create
+this cluster, they're doing it through Terraform code, and how they're automating is by
+creating a GitLab pipeline. We are keeping all that Terraform code here, and we are
+trying to run the pipelines, either by scheduling them — that's one kind of automation
+we are trying to do. But still, a lot of manual work is involved here.
+
+So now, if you want to automate this itself, and if you want to find out where — get some
+wrappers around it, or try to do this completely in a different way, I'm not sure.
+
+COLLEAGUE:
+Hmm, hmm, I see, I see.
+
+---
+
+[16:44 – 18:01] RCAM TO ONECUBE MIGRATION DISCUSSION
+
+COLLEAGUE:
+And as you — and I can see in your email that you were saying that — I know you were
+actually mentioning that, now these people are upgrading from RCam to the OneCube, so
+they might be — I'm not sure, or doesn't have much idea on that.
+
+BHASKAR:
+But what I heard is like, we are going to use maybe a few different set of tools, but
+overall, the architecture and everything would still remain the same. But still we are
+going to use the GitLab, and still we are going to have all the pipelines.
+
+But they might be moving to 1BT Engineering, a kind of, and right now, different kinds
+of engineering practices being followed in the different parts of BT — what I heard is,
+they are going to streamline this, and they want to move on to a single platform also.
+They might be moving to 1BT platform as well, I think, to make it uniform.
+
+So, but as you rightly said, right now they do not have any plans for GKE to upgrade
+onto the OneCube right away, I mean, in the near future. So I'm not sure even what their
+plans are on that.
+
+So in that case, for example, if you are going to do any developments on this, how it's
+going to fit onto the new version of OneCube also — we need to keep in mind, I think.
+
+COLLEAGUE:
+Okay, okay, I get it, I get it. All right.
+
+---
+
+[18:01 – 18:22] WRAP-UP & AGREEMENT TO STAY IN TOUCH
+
+COLLEAGUE:
+Well, I mean, so, yeah, thank you very much. To be honest, I'm gonna still get back to
+you occasionally if I have questions.
+
+BHASKAR:
+Sure, sure, definitely. Yeah, yeah. So whenever you have a doubt or something, you can
+come back, and if I know, I can share, otherwise we can try to explore together.
+
+COLLEAGUE:
+Yeah. Yeah, definitely wait till it.
+
+---
+
+[18:22 – 19:02] CLUSTER ACCESS — LOCAL MACHINE SETUP
+
+COLLEAGUE:
+Yeah, but before we run off, is there any way to sort of interact with this cluster? Is
+there any way to — do you have a way you connect with the cluster on the UI and also from
+your local machine? What sort of setup do you need to do?
+
+BHASKAR:
+Yes, yes. What we do is you just install the GCloud and the kubectl, so we can connect to
+any, like any regular cluster. So what I can do is I will give you IAM collections. Do
+you have already access to this cluster?
+
+COLLEAGUE:
+I'm not, I don't. I don't think I have got access to anything.
+
+BHASKAR:
+Okay, you don't have. Okay, then let me see. So I will give you the IAM collection
+details so that you can raise the request. Once you have that, you can even see the
+documentation on how to configure your kubectl and GCloud.
+
+---
+
+[19:02 – 19:44] ZSCALER VPN DISCUSSION
+
+COLLEAGUE:
+Okay. Yeah, if I can see that — I guess it's a bit, so do you have to set up the
+certificate for — what is this name of this — for what you call this — for the VPN, as
+the VPN looks like, for Zscaler. Did you have to set all that up?
+
+BHASKAR:
+Zscaler. Yeah. Yeah, Zscaler we have. So no, it doesn't require any VPN, right?
+
+COLLEAGUE:
+Oh, brilliant.
+
+BHASKAR:
+We have a Zscaler. Once you log in with your corporate account, it will directly connect.
+So it's a simplified one.
+
+COLLEAGUE:
+Oh, brilliant.
+
+BHASKAR:
+Once you connect to this, you will directly have it.
+
+---
+
+[19:44 – 21:44] IAM COLLECTION ACCESS — LUNA AI FRANCHISEE
+
+BHASKAR:
+What I'll do is I'll give you this Luna IAM collections. You raise a request for it, then
+you will get the access to it. Then what I'll do is you configure your GCloud and kubectl
+on your machine. So you can directly interact with this cluster from your local machine,
+once you have this configured.
+
+COLLEAGUE:
+Yes, yes. Oh, that's — that would be really good to be honest. That would be really good.
+
+BHASKAR:
+Yeah. Yeah, I'll tell you. You know this, right? The data transfer portal. Yeah, go there.
+That's what I'll do is...
+
+BHASKAR:
+OK. So Luna AI for IAM franchisee — is dev admin and prod. These are the two groups you
+need to raise a request for. Then once it gets approved, you will have access to various
+resources.
+
+COLLEAGUE:
+What do you want to do for the email?
+
+BHASKAR:
+All right. I am good. Actually, my Teams is not working as well. I locked.
+
+COLLEAGUE:
+Yeah, I got you. Okay.
+
+BHASKAR:
+This is the IAM collection name. So raise access for dev and prod so that you will get
+access to both of them. Once you have that, you will be having access on the console and
+you applied it on the GCP. And if you want to connect from your local machine, just
+configure GCloud and the kubectl. So once you have that, then you can directly connect
+with that kubectl.
+
+COLLEAGUE:
+Okay. Okay. GCloud. I mean...
+
+BHASKAR:
+With access for this part, yeah. Anytime you can come back to me, I can help.
+
+COLLEAGUE:
+Yeah, yeah. I'll probably — because I just need to first get in, have a view of what is
+going on. If possible, I mean, play around and just understand how things work a little
+bit further and see if we can actually get this work done on ARCAM or not. Know what I mean?
+
+---
+
+[21:44 – 22:33] FINAL STEPS — ACCESS APPROVAL VIA SHIVGA
+
+BHASKAR:
+Sure, sure. So what I could say is, right away go ahead and write a request for this. It
+will go to our line manager and the IAM collection owner. Nothing but, I will ask her to
+approve for you so that you will get access to this.
+
+COLLEAGUE:
+Super. Maybe by, within next half an hour you will get it?
+
+BHASKAR:
+Okay. Just ping her once you raise a request. I'll also inform her so that she...
+
+COLLEAGUE:
+Who is the person? Asha, you say? Who is the person?
+
+BHASKAR:
+Okay, okay, okay. Shivga. Owner name. Shivga. She's my teammate. She's here only in India.
+So I can ping her and I can ask her to approve this.
+
+COLLEAGUE:
+Okay, I'll do that straight away. Once I do that, I'll just send you a message to just
+help us look, okay?
+
+BHASKAR:
+Yes, yes. So go ahead and raise your request for Dev and Prod, right?
+
+COLLEAGUE:
+Oh, brilliant.
+
+BHASKAR:
+So that you will get access to this.
+
+COLLEAGUE:
+Thank you very much, man. I really appreciate it.
+
+BHASKAR:
+Oh, yeah. Yeah, maybe I'll give you a buzz some other time.
+
+---
+
+=============================================================================
+END OF TRANSCRIPTION
+=============================================================================
+
+KEY TOPICS COVERED:
+1. ARCAM (RCam) Franchisee-Tenant Model — architecture overview
+2. Shared services (Prometheus, Grafana, Argo CD, Kyverno) hosted in franchisee namespace
+3. Tenant isolation — namespaces are isolated; only shared namespace is accessible cross-tenant
+4. GCP services (Secret Manager, GCS buckets, Artifact Registry) accessible from franchisee code
+5. Luna as a franchisee — ODH and Luna itself are tenants within it
+6. GFU (Group Functional Unit) — tenant created per GFU (e.g. Consumer, Network, etc.) for billing isolation
+7. Platform team responsibilities: cluster creation, namespace, node pools, tenant onboarding
+8. Application team responsibilities: Helm charts, actual application code
+9. Current deployment method: Terraform + GitLab pipelines + Helm charts + Argo CD
+10. Automation gap: portal automation for tenant creation, GitLab repo generation is NOT yet built
+11. Service catalog vision: web UI for ML engineers / data scientists to self-serve deploy applications
+12. Ongoing migration from RCam → OneCube (1BT Platform) — no GKE upgrade planned in near future
+13. Cluster access setup: GCloud + kubectl + IAM collection request (dev + prod groups)
+14. Zscaler used instead of VPN — no extra certificate setup required
+15. Action item: colleague to raise IAM access request for "Luna AI franchisee dev admin" and "prod" groups; approval by Shivga
+=============================================================================
+
+
+
+Here's a summary of what was covered in the 22-minute session:
+
+Participants: Bhaskar (platform/infra engineer) explaining ARCAM to a colleague new to the Luna setup.
+
+Key topics transcribed in full:
+
+1 - ARCAM Franchisee-Tenant Model — a GKE cluster = one franchisee; shared services (Prometheus, Grafana, Argo CD, Kyverno) live in the franchisee namespace; applications are isolated in tenant namespaces.
+2 - Namespace isolation rules — tenants cannot talk to each other; all tenants can access the shared franchisee namespace only.
+3 - GCP cloud services — Secret Manager, GCS buckets, Artifact Registry can be provisioned from franchisee code.
+4 - Luna as a franchisee — Luna is a franchisee with multiple tenants (ODH, Luna itself), created per GFU (Group Functional Unit) for resource isolation and billing differentiation.
+5 - Service catalog / automation vision — colleague outlined a plan for a self-serve web UI for ML engineers to spin up tenants automatically; Bhaskar confirmed this automation doesn't yet exist and needs to be built.
+6 - Current process — manual: Terraform + GitLab pipelines + Helm charts + Argo CD deployment.
+7 - Arcam → OneCube migration — ongoing, no GKE upgrade planned in the near term; architecture largely the same.
+8 - Cluster access setup — GCloud + kubectl, no VPN (Zscaler used), raise IAM request for Luna AI franchisee dev admin + prod groups; approval via teammate Shivga.
