@@ -1,0 +1,424 @@
+{
+  "info": {
+    "_postman_id": "24ffe57a-782b-465c-9baf-188fa1297955",
+    "name": "Survey Assist API \u2013 Sandbox smoke test",
+    "description": "Smoke test of the Survey Assist API through the API Gateway. It covers the same calls the old Survey Assist UI makes: sic-lookup, then classify, then (when unclassified) the follow-up question, then result.\n\n## Setup\n1. Import this collection plus `survey-assist-sandbox.postman_environment.json`, and select that environment.\n2. Set `gatewayHost` to the gateway host **without** `https://`:\n   `gcloud api-gateway gateways list --project=survey-assist-sandbox --format=\"value(defaultHostname)\"`\n3. Generate a JWT (valid 1h) with survey-assist-utils, then paste it into `token`:\n   `export SA_EMAIL=<api access SA>; export API_GATEWAY=<gatewayHost>; make generate-api-token`\n   You need `roles/iam.serviceAccountTokenCreator` on the SA.\n4. Run the folders in order (Collection Runner works).\n\n## Notes\n- The API Gateway only forwards paths defined in its config, so `/docs` returns 404 through the gateway.\n- `3. Store result` writes a **test record to the sandbox Firestore** (IDs prefixed `postman-test-`).\n- Classify calls hit Gemini and take a few seconds each.\n- For another environment (e.g. NatSen), duplicate the environment and change `gatewayHost` and `token`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://{{gatewayHost}}/v1/survey-assist"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.environment.get(\"token\")) {",
+          "    throw new Error(\"Set the 'token' environment variable (make generate-api-token in survey-assist-utils).\");",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Lookup",
+      "description": "The old UI calls sic-lookup on the organisation description first. If it returns a code, classify is skipped.",
+      "item": [
+        {
+          "name": "SIC lookup \u2013 exact match",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sic-lookup?description=electrical installation&similarity=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sic-lookup"
+              ],
+              "query": [
+                {
+                  "key": "description",
+                  "value": "electrical installation"
+                },
+                {
+                  "key": "similarity",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Exact description match. Expect `code: 43210`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Exact match returns code 43210\", () => pm.expect(body.code).to.eql(\"43210\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "SIC lookup \u2013 similarity",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sic-lookup?description=electrical&similarity=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sic-lookup"
+              ],
+              "query": [
+                {
+                  "key": "description",
+                  "value": "electrical"
+                },
+                {
+                  "key": "similarity",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Similarity search (the UI always sends `similarity=true`)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "SIC lookup \u2013 empty description (400)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sic-lookup?description=&similarity=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sic-lookup"
+              ],
+              "query": [
+                {
+                  "key": "description",
+                  "value": ""
+                },
+                {
+                  "key": "similarity",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Validation path. Expect 400 `Description cannot be empty`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Classify",
+      "description": "Vector store shortlist, then Gemini call 1 (unambiguous code?). If not codable, Gemini call 2 writes a follow-up question.",
+      "item": [
+        {
+          "name": "Classify \u2013 clear input",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/classify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "classify"
+              ]
+            },
+            "description": "Usually returns `classified: true` with a code. LLM output can vary.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"llm\": \"gemini\",\n  \"type\": \"sic\",\n  \"job_title\": \"Electrician\",\n  \"job_description\": \"Installing and maintaining electrical systems\",\n  \"org_description\": \"Electrical contracting company\",\n  \"options\": {\n    \"sic\": {\n      \"rephrased\": true\n    },\n    \"soc\": {\n      \"rephrased\": false\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Has results[0]\", () => pm.expect(body.results).to.be.an(\"array\").that.is.not.empty);",
+                  "const r = body.results[0];",
+                  "pm.test(\"Result has classified, candidates, reasoning\", () => {",
+                  "    pm.expect(r).to.have.property(\"classified\");",
+                  "    pm.expect(r.candidates).to.be.an(\"array\");",
+                  "    pm.expect(r.reasoning).to.be.a(\"string\");",
+                  "});",
+                  "",
+                  "if (r.classified) {",
+                  "    pm.test(\"Classified: code present, no follow-up\", () => {",
+                  "        pm.expect(r.code).to.be.a(\"string\").and.not.empty;",
+                  "        pm.expect(r.followup).to.be.null;",
+                  "    });",
+                  "} else {",
+                  "    console.log(\"Clear input was not classified this time (LLM output varies):\", r.followup);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Classify \u2013 vague input (follow-up)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/classify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "classify"
+              ]
+            },
+            "description": "Vague input, so expect `classified: false` and a `followup` question. The response is saved for the result step.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"llm\": \"gemini\",\n  \"type\": \"sic\",\n  \"job_title\": \"Worker\",\n  \"job_description\": \"I do various tasks depending on what is needed each day\",\n  \"org_description\": \"Small business\",\n  \"options\": {\n    \"sic\": {\n      \"rephrased\": true\n    },\n    \"soc\": {\n      \"rephrased\": false\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Has results[0]\", () => pm.expect(body.results).to.be.an(\"array\").that.is.not.empty);",
+                  "const r = body.results[0];",
+                  "pm.test(\"Result has classified, candidates, reasoning\", () => {",
+                  "    pm.expect(r).to.have.property(\"classified\");",
+                  "    pm.expect(r.candidates).to.be.an(\"array\");",
+                  "    pm.expect(r.reasoning).to.be.a(\"string\");",
+                  "});",
+                  "",
+                  "pm.test(\"Not classified, follow-up question returned\", () => {",
+                  "    pm.expect(r.classified).to.eql(false);",
+                  "    pm.expect(r.code).to.be.null;",
+                  "    pm.expect(r.followup).to.be.a(\"string\").and.not.empty;",
+                  "});",
+                  "// Save for \"3. Store result\"",
+                  "pm.collectionVariables.set(\"classifyInput\", JSON.stringify(JSON.parse(pm.request.body.raw)));",
+                  "pm.collectionVariables.set(\"classifyResult\", JSON.stringify(r));",
+                  "console.log(\"Follow-up question:\", r.followup);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Result",
+      "description": "The follow-up answers are not reclassified. The UI stores everything via POST /result at the end of the survey.",
+      "item": [
+        {
+          "name": "Store result (with follow-up answers)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/result",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "result"
+              ]
+            },
+            "description": "Builds the body from the vague classify response: the open follow-up (`f1.1`) plus the UI-style closed question (`f1.2`). Writes a test record to Firestore.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{resultBody}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const input = JSON.parse(pm.collectionVariables.get(\"classifyInput\") || \"null\");",
+                  "const r = JSON.parse(pm.collectionVariables.get(\"classifyResult\") || \"null\");",
+                  "if (!input || !r) {",
+                  "    throw new Error(\"Run '2. Classify / Classify \u2013 vague input (follow-up)' first.\");",
+                  "}",
+                  "const now = new Date().toISOString();",
+                  "const questions = [{",
+                  "    id: \"f1.1\", text: r.followup || \"\", type: \"textarea\", select_options: null,",
+                  "    response: pm.environment.get(\"followupAnswer\") || \"Mostly repairing and servicing customers' cars\"",
+                  "}];",
+                  "if (r.candidates.length) {",
+                  "    const options = r.candidates.map(c => c.descriptive).concat([\"None of the above\"]);",
+                  "    questions.push({",
+                  "        id: \"f1.2\", text: \"Which of these best describes your organisation's activities?\",",
+                  "        type: \"select\", select_options: options, response: options[0]",
+                  "    });",
+                  "}",
+                  "const body = {",
+                  "    survey_id: \"postman-test-survey\", case_id: \"postman-test-case-\" + Date.now(), wave_id: \"postman-test-wave\",",
+                  "    user: \"postman.test\", time_start: now, time_end: now,",
+                  "    responses: [{",
+                  "        person_id: \"postman-test-person\", time_start: now, time_end: now,",
+                  "        survey_assist_interactions: [{",
+                  "            type: \"classify\", flavour: \"sic\", time_start: now, time_end: now,",
+                  "            input: [\"job_title\", \"job_description\", \"org_description\"].map(f => ({ field: f, value: input[f] })),",
+                  "            response: {",
+                  "                classified: r.classified, code: r.code, description: r.description, reasoning: r.reasoning,",
+                  "                candidates: r.candidates.map(c => ({ code: c.code, description: c.descriptive, likelihood: c.likelihood })),",
+                  "                follow_up: { questions }",
+                  "            }",
+                  "        }]",
+                  "    }]",
+                  "};",
+                  "pm.collectionVariables.set(\"resultBody\", JSON.stringify(body));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test(\"result_id returned\", () => pm.expect(body.result_id).to.be.a(\"string\").and.not.empty);",
+                  "pm.collectionVariables.set(\"resultId\", body.result_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get result",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/result?result_id={{resultId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "result"
+              ],
+              "query": [
+                {
+                  "key": "result_id",
+                  "value": "{{resultId}}"
+                }
+              ]
+            },
+            "description": "Reads back the stored record and checks the follow-up answers are present."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "const q = body.responses[0].survey_assist_interactions[0].response.follow_up.questions;",
+                  "pm.test(\"Follow-up answers stored\", () => {",
+                  "    pm.expect(q[0].id).to.eql(\"f1.1\");",
+                  "    pm.expect(q[0].response).to.be.a(\"string\").and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
