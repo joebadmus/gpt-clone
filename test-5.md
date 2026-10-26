@@ -99,3 +99,58 @@ gcloud run services describe <api-service-name> --project=<NATCEN-PROJECT-ID> --
 Look for `SIC_VECTOR_STORE` (missing, or set to localhost?), `SIC_VECTOR_STORE_AUTH_ENABLED`, and `GCP_PROJECT_ID`. Run the same `describe` against sandbox and compare.
 
 My guess is the vector store, either its URL setting or the API's permission to call it. It's a separate deploy, and NatCen is a new environment, so it's the most likely piece to be missing. Paste the error body and I'll tell you which one it is.
+
+
+===================
+Written for: your colleague, as a test summary to send.
+
+---
+
+**NatCen vs Sandbox – Survey Assist API smoke test**
+
+I ran the same Postman collection (through the API Gateway with a JWT) against sandbox and NatCen:
+
+| Request | Sandbox | NatCen |
+|---|---|---|
+| SIC lookup – exact match | 200 | 200 |
+| SIC lookup – similarity | 200 | 200 |
+| SIC lookup – empty description (expected 400) | 400 | 400 |
+| Classify – clear input | 200 | **422** |
+| Classify – vague input (follow-up) | 200 | **422** |
+| Store result | 200 | 200 |
+| Get result | 200 | 200 |
+
+**What works in NatCen:**
+- Generating the token, gateway auth and network access.
+- The API service itself.
+- The SIC lookup data.
+- Firestore (storing and reading results).
+
+**What fails:** only `/classify`, for both inputs.
+
+**Likely cause: the API can't call Gemini (Vertex AI) in NatCen.**
+- In the API code (`api/routes/v1/classify.py`), a **422** on classify is only raised when the **LLM step** fails ("The LLM could not generate a valid classification").
+- If the vector store were unreachable or rejecting the API, we'd get a **503**, not a 422. So the vector store connection is probably fine.
+- Both inputs fail at the first Gemini call (`unambiguous_sic_code`, model `gemini-2.5-flash`) before any follow-up logic runs.
+
+**Things to check in the NatCen project:**
+1. The **Vertex AI API** (`aiplatform.googleapis.com`) is enabled.
+2. The **API's Cloud Run service account** has `roles/aiplatform.user`.
+3. **`gemini-2.5-flash`** is available in the region the API uses.
+4. **`GCP_PROJECT_ID`** on the API's Cloud Run service points to the NatCen project, not sandbox.
+5. The Cloud Run logs for the API service show the actual exception message:
+```bash
+gcloud logging read 'resource.type="cloud_run_revision" AND severity>=ERROR' \
+  --project=<NATCEN-PROJECT-ID> --freshness=1h --limit=20 \
+  --format="value(timestamp,resource.labels.service_name,jsonPayload.message,textPayload)"
+```
+
+**Caveat:** the NatCen "Store result" call probably reused the classify response from the **sandbox** run, because the collection keeps it between runs. So that 200 confirms NatCen's Firestore works, but it doesn't test the full NatCen flow. Once classify is fixed, I'll rerun the whole collection on NatCen.
+
+---
+
+The `details` field in the 422 response body will confirm the cause:
+- If it starts with `Unambiguous classification failed: ...` followed by `403`, `PermissionDenied` or `not found`, it's Gemini access, as above.
+- If it starts with `Response was empty or invalid JSON: ...`, the vector store returned unexpected data. Run `GET /v1/search-assist/embeddings` and check for `status: ready`.
+
+Paste that line into the message as well if you can.
