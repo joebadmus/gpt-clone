@@ -44,3 +44,58 @@ Written for: your team chat. These are short questions, ready to paste.
 > 4. Is the NatCen gateway behind an IP allow-list or Cloud Armor? If so, how should I call it from my machine?
 > 5. Is the SIC data loaded into the NatCen vector store yet?
 > 6. Is it OK to write a test record to the NatCen Firestore via `/result`, or should I skip that step?
+
+
+<!-- Response -->
+Good progress. Since both lookups work, these parts of NatCen are fine:
+
+- **Token:** your service account and audience are correct.
+- **Gateway:** it accepts your JWT, and the network let you through.
+- **API:** the container is running and its SIC lookup data is loaded.
+
+Lookup only uses data built into the API container. Classify is the first call that reaches **outside** the API: first to the **SIC vector store**, then to **Gemini**. So the failure is in one of those two, or in the API's permission to call them.
+
+## Step 1: Check the vector store directly
+
+The API has a status endpoint for this, `GET /embeddings`. It may not be exposed through the gateway; if it returns 404, skip to step 2.
+```bash
+curl -s -w "\n%{http_code}\n" -H "Authorization: Bearer $TOKEN" "https://$API_GATEWAY/v1/survey-assist/embeddings"
+```
+
+| Result | Meaning |
+|---|---|
+| 200 with `"status": "ready"` and `index_size` around 16618 | Vector store is fine, so the problem is Gemini. Go to the table below |
+| 503 `Unable to authenticate to ...` | The API can't authenticate to the vector store. Its service account is probably missing `roles/run.invoker` on the vector store's Cloud Run service |
+| 503 `Failed to check ... status` | The API can't reach the vector store. Either the URL setting is wrong or missing, or the vector store isn't deployed |
+| 200 but status isn't `ready` | The vector store is still building its index. Wait a few minutes and retry |
+
+## Step 2: Match the classify error
+
+Send the **status code and response body** from the clear-input classify call. Then match it here:
+
+| Error | Meaning | Fix (for the infra team) |
+|---|---|---|
+| **503** `Failed to search SIC vector store: ... connection refused / localhost` | `SIC_VECTOR_STORE` isn't set on the NatCen API, so it's pointing at localhost | Set the environment variable to the vector store's URL |
+| **503** `Unable to authenticate to SIC vector store` | The API can't get a token for the vector store | Give the API's service account `run.invoker` on the vector store |
+| **422** `The LLM could not generate a valid classification` with `Unambiguous classification failed: 403 / PermissionDenied` | The API can't call Gemini | Enable Vertex AI in the project, and give the API's service account `roles/aiplatform.user` |
+| **422** with `404 ... model not found` or a location error | Wrong Gemini model or region for this project | Check the model and region settings, or whether Gemini is available in that region |
+| **500** `Error during classification: ...` | Something unexpected. The text after the colon says what | It depends on the message |
+| **504** or a timeout | The vector store is cold-starting or overloaded | Retry once. If it keeps happening, report it |
+
+## Step 3: Check the API's logs (if you have NatCen project access)
+
+```bash
+gcloud logging read 'resource.type="cloud_run_revision" AND severity>=WARNING' \
+  --project=<NATCEN-PROJECT-ID> --freshness=1h --limit=30 \
+  --format="value(timestamp,resource.labels.service_name,jsonPayload.message,textPayload)"
+```
+
+Then compare the API's settings with sandbox:
+```bash
+gcloud run services list --project=<NATCEN-PROJECT-ID>
+gcloud run services describe <api-service-name> --project=<NATCEN-PROJECT-ID> --region=<region> \
+  --format="yaml(spec.template.spec.containers[0].env)"
+```
+Look for `SIC_VECTOR_STORE` (missing, or set to localhost?), `SIC_VECTOR_STORE_AUTH_ENABLED`, and `GCP_PROJECT_ID`. Run the same `describe` against sandbox and compare.
+
+My guess is the vector store, either its URL setting or the API's permission to call it. It's a separate deploy, and NatCen is a new environment, so it's the most likely piece to be missing. Paste the error body and I'll tell you which one it is.
