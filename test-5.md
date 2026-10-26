@@ -153,4 +153,31 @@ The `details` field in the 422 response body will confirm the cause:
 - If it starts with `Unambiguous classification failed: ...` followed by `403`, `PermissionDenied` or `not found`, it's Gemini access, as above.
 - If it starts with `Response was empty or invalid JSON: ...`, the vector store returned unexpected data. Run `GET /v1/search-assist/embeddings` and check for `status: ready`.
 
-Paste that line into the message as well if you can.
+
+
+
+=====
+====
+Hi, I've tested the Survey Assist API on NatCen and compared it with sandbox, using the same Postman collection through the gateway.
+
+✅ Working on NatCen (same as sandbox):
+• Token and gateway auth
+• SIC lookup: exact (200), similarity (200), empty description (400 as expected)
+• Store and get result (200)
+
+❌ Failing on NatCen:
+• Classify, clear input: 422
+• Classify, vague input: 422
+(Both return 200 on sandbox.)
+
+🔍 Likely cause: the API can't call Gemini (Vertex AI) in NatCen. In the API code, a 422 on classify only comes from the LLM step. A vector store problem would give a 503 instead.
+
+Could you check in the NatCen project:
+
+Vertex AI API is enabled
+The API's Cloud Run service account has roles/aiplatform.user
+gemini-2.5-flash is available in the region the API runs in
+GCP_PROJECT_ID on the API service is set to NatCen, not sandbox
+The API's Cloud Run error logs should show the exact error.
+
+Note: the "store result" test probably reused sandbox data, so I'll rerun the full set on NatCen once classify is fixed. Thanks!
