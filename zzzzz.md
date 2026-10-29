@@ -55,21 +55,54 @@ If you paste the whole summary into the channel, its first section (the summary 
 Update
 ===========
 =========
+No, don't ask for review yet. The approach is right (deploying by digest, and checking that the promoted image matches the one tested), but two bugs mean both pipelines would fail on their first run. Both are quick to fix.
 
-I've updated my memory: the classify 422 is fixed by changing the model to Gemini 3.8 Flash, and you've retested it.
+## Blockers
 
-Your local copy of `survey-assist-api` still says `gemini-2.5-flash` in `api/main.py`, because it hasn't been pulled since the change. Please double-check the exact model name before sending. I've used "Gemini 3.8 Flash" as you said it.
+**1. Bash variables need `$$` in Cloud Build YAML**
+- Files: [cloudbuild_dev_and_sandbox.yaml:31-38](../survey-assist-api/cicd/cloudbuild_dev_and_sandbox.yaml#L31-L38) and [cloudbuild_promote_preprod.yaml:9-38](../survey-assist-api/cicd/cloudbuild_promote_preprod.yaml#L9-L38).
+- **Problem:** Cloud Build treats every `$name` as one of its own substitutions. `$image_digest`, `$source_image`, `$source_digest`, `$release_image`, `$release_digest` and `${source_digest#*@}` aren't Cloud Build variables, so it rejects the build with `key in the template "image_digest" is not a valid built-in substitution`.
+- **Proof:** the existing file already escapes its own bash variable: `$$SURVEY_ASSIST_API_URL` on line 43 of the promote file.
+- **Fix:** use `$$` for your own variables (`$$image_digest`, `$${source_digest#*@}` and so on). Leave Cloud Build's (`$_GAR_IMAGE`, `$SHORT_SHA`, `$LOCATION`) as they are.
 
-Written for: your team on Teams, and the Jira ticket.
+**2. `docker push --quiet` doesn't return the digest**
+- **Problem:** it prints the image reference (e.g. `…/survey-assist-api:abc1234`), not `sha256:…`. The regex check would then fail on every run.
+- **Fix:** ask Artifact Registry for the digest after pushing:
 
----
+```bash
+        docker push $_GAR_IMAGE:latest
+        docker push $_GAR_IMAGE:$SHORT_SHA
+        image_digest=$(gcloud artifacts docker images describe "$_GAR_IMAGE:$SHORT_SHA" --format='value(image_summary.digest)')
 
-**Teams message:**
+        if [[ ! "$$image_digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+          echo "ERROR: could not resolve image digest: $$image_digest" >&2
+          exit 1
+        fi
 
-> Hi all, quick update on NatCen: the classify 422 is fixed. The API model has been switched from Gemini 2.5 Flash (deprecated) to Gemini 3.8 Flash. I've retested NatCen and classify now returns 200 for both the clear and vague inputs, matching sandbox. ✅
+        gcloud run deploy survey-assist-api --image="$_GAR_IMAGE@$$image_digest" --region $LOCATION --project $_TARGET_PROJECT_ID
+```
 
----
+  In the promote file, do the same for both digests: use `gcloud artifacts docker images describe` on `"$$source_image:$SHORT_SHA"` and on `"$$release_image:$TAG_NAME"`. That also replaces the `docker image inspect` line.
 
-**Jira comment:**
+## Worth checking
 
-> Classify 422 on NatCen resolved. The cause was the deprecated Gemini 2.5 Flash model, now switched to Gemini 3.8 Flash. Retested: classify returns 200 for both clear and vague inputs, and the results match sandbox.
+**3. The digest check may fail on a real promotion.**
+- **Why:** `docker pull`, `tag` and `push` into a different repo doesn't always keep the same digest. Docker can recompress layers, or push only one platform's manifest when the original was a multi-platform index.
+- **Your check would catch this, which is good, but the promotion would then fail.**
+- **What to do:** run the promotion once to see. If the digests don't match, use `crane copy` or `gcrane cp` from source digest to release tag, which copies byte for byte. The ticket's risk table (section 8) already suggests this.
+
+**4. Scope against the ticket.**
+- **What this PR does:** it's the "deploy by digest / promote without rebuild" piece.
+- **What it doesn't do:** dev and sandbox still run this YAML separately, so the image is still built once per environment. It also doesn't touch the CI/CD registry, the Terraform change, or the NatCen trigger.
+- **That's fine for a small PR,** but say so in the PR description so reviewers don't expect the full ticket.
+
+**5. Docs wording.** [gcp_deployment.md](../survey-assist-api/docs/gcp_deployment.md) says "Docker pushes the same local manifest". Update it once you know whether you're keeping docker push or switching to crane.
+
+## Before asking for review
+
+1. Fix points 1 and 2.
+2. Run the dev pipeline once from your branch against sandbox. Check the deploy log shows `@sha256:…` and the smoke tests pass.
+3. Run the promote pipeline once with a test tag. Check that the two digests match, or switch to crane if they don't.
+4. Update the PR description: what it does, what it doesn't (point 4), and a link to a successful build log.
+
+I can make the fixes for points 1 and 2 on the branch if you want; I haven't changed anything yet. I also can't see the PR itself (`gh` isn't installed), so this review is based on the branch diff against `main`.
