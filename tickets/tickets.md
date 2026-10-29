@@ -1,8 +1,8 @@
 # Joe: Tickets to Raise on the Board
 
 **Owner:** Joe
-**Last updated:** Wednesday 28 Oct 2026
-**Sources:** [281026-Refinement.md](../281026-Refinement.md) · [271026-infra-sync-summary.md](../271026-infra-sync-summary.md) · [271026-NatcenSmokeTest-summary.md](../271026-NatcenSmokeTest-summary.md)
+**Last updated:** Thursday 29 Oct 2026 (added J9 / T1)
+**Sources:** [28-Oct26-DanCatchUp.md](../28-Oct26-DanCatchUp.md) · [281026-Refinement.md](../281026-Refinement.md) · [271026-infra-sync-summary.md](../271026-infra-sync-summary.md) · [271026-NatcenSmokeTest-summary.md](../271026-NatcenSmokeTest-summary.md)
 **Board rules agreed in the meetings:**
 - One ticket per small change.
 - Every Terraform change is its **own isolated PR** into `main` and is **backward-compatible**: existing environments must plan **"No changes"**.
@@ -18,8 +18,10 @@ Tick **Raised** when the ticket is on the board (write the Jira key next to it),
 
 ### Raise and deliver (assigned to Joe)
 
-- [ ] **J1: NatCen: temporary Gemini model, NatCen environment only** · P1 · **due before Thu 29 Oct** · Jira: `_____`
-  - [ ] Raised · [ ] PR (API) · [ ] PR (Terraform) · [ ] Deployed to NatCen · [ ] Done
+- [ ] ~~**J1: NatCen: temporary Gemini model, NatCen environment only**~~ · **Moved to Dan (catch-up 28 Oct).** He has a subtask, In Progress. Don't raise; add the J1 notes below as a comment on his ticket · Jira: `_____`
+  - [ ] J1 notes added to Dan's ticket · [ ] Deployed to NatCen (unblocks J2)
+- [ ] **J8: Build once, deploy many (T3): CI/CD registries, NatCen branch trigger, modules reference CI/CD registry** · **P1, your next item** · Details: [J8-build-once-promote-many.md](J8-build-once-promote-many.md) · Jira: `_____`
+  - [ ] Raised · [ ] Discovery done · [ ] Module PR (No changes) · [ ] IAM PR · [ ] First env switched · [ ] Pre-prod/prod promoted · [ ] Runbook · [ ] Done
 - [ ] **J2: NatCen smoke tests: rerun and close** *(existing ticket: update it, don't create a new one)* · P1 · Jira: `_____`
   - [ ] Ticket fixed up with Dan's template · [ ] Rerun green · [ ] Results attached · [ ] Done
 - [ ] **J3: Terraform: NAT IP secret-name override (upstream from NatCen branch)** · P2 · Jira: `_____`
@@ -32,20 +34,24 @@ Tick **Raised** when the ticket is on the board (write the Jira key next to it),
   - [ ] Raised · [ ] PR · [ ] Done
 - [ ] **J7: Runbook: NatCen environment manual steps (shared with Dan)** · P3 · Jira: `_____`
   - [ ] Raised · [ ] Confluence page drafted · [ ] Reviewed by Dan · [ ] Done
+- [ ] **J9: Integrate NatCen sandbox-ext into the Survey Assist CI/CD pipeline (T1)** *(already on the board: add details, don't create a new one)* · P1, after J8 · pairing with Dan · Jira: `_____`
+  - [ ] Discovery done · [ ] Branch differences upstreamed (J3/J4/J5/model) · [ ] SA grant · [ ] Env added · [ ] Plan on PR · [ ] Apply on merge · [ ] Manual trigger retired · [ ] Done
 
 ### Suggested (my recommendation, not agreed in a meeting; check with Matt or Dan before raising)
 
 - [ ] **S1: Bug: upstream model "not found" returns 422 instead of a 5xx** · Jira: `_____`
 - [ ] **S2: Smoke tests: authenticate as NatCen's external service account** · Jira: `_____`
 - [ ] **S3: Run the Postman smoke collection automatically after each environment deploy** · Jira: `_____`
+- [ ] **S4: Spike: early detection of LLM model deprecation** · **Agreed with Dan 28 Oct**, Infrastructure Improvements epic. Draft in [28-Oct26-DanCatchUp.md §6.2](../28-Oct26-DanCatchUp.md) · Jira: `_____`
 
 ### Not yours to raise (for context; you're pairing or waiting on these)
 
 | Ticket | Owner | Your part |
 |---|---|---|
-| T1: Onboard NatCen into the CI/CD repo (plan on PR, apply on merge) | Dan | Pair |
+| T1: Onboard NatCen into the CI/CD repo (plan on PR, apply on merge) | **Joe picking up (now J9)**, with Dan | Pair or lead *(confirm with Dan)* |
 | T2: Move the test proxy into the CI/CD project | Dan | Pair |
-| T3: Build once, deploy many | Dan | Possible pair |
+| T3: Build once, deploy many | **Joe (now J8)** | Lead; Dan supports |
+| Gemini model for NatCen (was J1) | Dan | Rerun smoke tests (J2) when it lands |
 | NatCen-only service account for token minting | Dan | Use it in S2 |
 | Backlog placeholder: central test automation repo | Dan | Mention S3 when it's discussed |
 
@@ -86,6 +92,7 @@ flowchart LR
     J5["J5 scheduler paused flag"]:::joe
     J6["J6 job warns, not errors"]:::joe
     J7["J7 runbook"]:::joe
+    J9["J9 NatCen into CI/CD<br/>plan on PR, apply on merge"]:::joe
     S1["S1 422 to 5xx"]:::sug
     S2["S2 NatCen SA auth"]:::sug
     S3["S3 smoke in CI"]:::sug
@@ -107,12 +114,13 @@ flowchart LR
     J5 -.- SCHED
     J6 -.- JOBREPO
     J7 -.- CONF
+    J9 -.- CICD
     S1 -.- API
     S2 -.- PM
     S3 -.- CICD
 ```
 
-**Order to work in:** J1 and J2 first (NatCen meeting tomorrow). Then J5 and J6, which are a pair and small. Then J3 and J4. J7 runs alongside, as you discover manual steps.
+**Order to work in (updated 28 Oct, after the Dan catch-up):** J2 as soon as Dan's Gemini fix lands. **J8 (build once) is your main piece of work.** Then J5 and J6, which are a pair and small. Then J3 and J4. J7 runs alongside, as you discover manual steps.
 
 ---
 
@@ -461,6 +469,218 @@ flowchart LR
 - [ ] Every manual step has: why it's needed, the exact command or console path, how to verify it, and which ticket removes it.
 - [ ] Dan has reviewed it.
 - [ ] It's linked from the J1 to J6 tickets.
+
+---
+
+## J9: Integrate NatCen sandbox-ext into the Survey Assist CI/CD pipeline (T1)
+
+| Field | Value |
+|---|---|
+| **Jira title** | Integrate NatCen Sandbox External into Survey Assist CI/CD pipeline *(as on the board)* |
+| **Meeting ID** | **T1** (infra sync 27 Oct, §3.15 / §4.1 / §6.5) |
+| **Type** | Story, with one subtask per PR (see "Subtasks") |
+| **Epic** | **NatCen** (Dan, catch-up 28 Oct: "the CI/CD one (T1) is NatCen") |
+| **Priority** | **P1.** Second DevOps priority after J8 (agreed order: T3 > T1 > T2) |
+| **Assignee** | Joe, pairing with Dan *(confirm who leads: the meeting said Dan leads, Joe pairs)* |
+| **Reviewers** | Ethan / Rupert |
+| **Repos** | **CI/CD repo** (Cloud Build triggers, CI/CD SA, Slack notifier) · **Terraform repo** (env config + backend for `sandbox-ext`) *(confirm whether these are one repo or two)* |
+| **Linked** | **Blocked by J3, J4, J5** (and the model config from J1/Dan) being in `main` · relates to **J7** (manual steps it removes or leaves) · relates to **J8** (app image side) · **E4** (least-privilege CI/CD SA, later) |
+| **Source** | Infra sync 27 Oct (T1); Dan catch-up 28 Oct |
+
+> **Placeholders.** `<CICD_PROJECT>`, `<REGION>`, `<SANDBOX_EXT_PROJECT>`, `<CICD_SA>` and `<STATE_BUCKET>` weren't said in the meetings. Subtask 1 (discovery) fills them in.
+
+### Background
+
+- **NatCen's environment is the GCP project `sandbox-ext`** ("sandbox external"). It's **deployed and working**, but it was deployed **by hand**: Terraform run from the **NatCen branch** via a **manual trigger + Slack**, plus manual steps (see J7).
+- The other environments (sandbox, dev, pre-prod) are already wired into the **Survey Assist CI/CD setup**: Cloud Build in the CI/CD project, running as the **ONS CI/CD service account**.
+- In the meeting, the wanted flow is: **raise a PR → `terraform plan` output is posted on the PR (and Slack) → reviewer checks the plan → merge → `terraform apply` runs automatically.**
+- Dan's view (§3.15): the **Slack side is already set up**; the main work is a **project-level grant** so the CI/CD SA can reach `sandbox-ext`, and **adding the project to the CI/CD repo setup**.
+- **Heads-up (§3.16):** the CI/CD SA is managed by **ONS Platform Engineering** and is effectively **Owner** on every environment. Granting it access to `sandbox-ext` may prompt questions from **ONS Security**. Answer: "same as the existing environments". Least privilege is a separate, later ticket (**E4**).
+
+### Goal
+
+`sandbox-ext` is just another environment in the pipeline. **No manual trigger, no hand-run Terraform.** Every NatCen infra change goes through a reviewed PR with its plan visible.
+
+### Diagram 1: today vs target
+
+```mermaid
+flowchart LR
+    classDef manual fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef auto fill:#e8f5e9,stroke:#4caf50,color:#000
+    classDef change fill:#ffe9a8,stroke:#b8860b,color:#000
+
+    subgraph TODAY["Today"]
+        direction TB
+        NB["NatCen branch<br/>(diverged from main)"]:::manual --> MT["Manual Cloud Build trigger<br/>/ Slack"]:::manual
+        MT --> TA["terraform apply"]:::manual
+        TA --> NP1["sandbox-ext project"]
+        NP1 --> MS["Manual steps<br/>users.json, gateway re-version,<br/>OTP pause, overrides (J7)"]:::manual
+    end
+
+    subgraph TARGET["Target (J9)"]
+        direction TB
+        PR["PR into main"]:::auto --> PL["PR trigger:<br/>terraform plan for sandbox-ext<br/>(+ other envs)"]:::change
+        PL --> POST["Plan posted on PR + Slack"]:::auto
+        POST --> REV["Ethan / Rupert review plan"]:::auto
+        REV --> MG["Merge"]:::auto
+        MG --> AP["Merge trigger:<br/>terraform apply"]:::change
+        AP --> NP2["sandbox-ext project"]
+    end
+```
+
+### Diagram 2: PR to apply, step by step
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Eng as Engineer (Joe / Dan)
+    participant GH as GitHub (Terraform / CI/CD repo)
+    participant CB as Cloud Build (CI/CD project)
+    participant SA as ONS CI/CD service account
+    participant ST as Terraform state (sandbox-ext)
+    participant NAT as sandbox-ext project
+    participant SL as Slack
+    actor Rev as Reviewer (Ethan / Rupert)
+
+    Eng->>GH: Open small PR into main
+    GH->>CB: PR trigger (NEW for sandbox-ext)
+    CB->>SA: run as CI/CD SA
+    SA->>ST: terraform init (existing state, NOT new)
+    SA->>NAT: terraform plan (read only)
+    CB-->>GH: Post plan output on PR
+    CB-->>SL: Plan notification
+    Rev->>GH: Review code + plan, approve
+    Eng->>GH: Merge
+    GH->>CB: Merge trigger (NEW for sandbox-ext)
+    SA->>NAT: terraform apply
+    SA->>ST: write new state
+    CB-->>SL: Apply result
+```
+
+### Diagram 3: what has to be true before the pipeline can plan NatCen cleanly
+
+The pipeline runs Terraform from **`main`**. Today NatCen was applied from the **NatCen branch**. If `main` doesn't yet contain the branch's differences, the first pipeline plan will try to **undo** NatCen's settings. So the branch's differences must be upstreamed first, as no-op PRs.
+
+```mermaid
+flowchart LR
+    classDef joe fill:#ffe9a8,stroke:#b8860b,color:#000
+    classDef risk fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef ok fill:#e8f5e9,stroke:#4caf50,color:#000
+
+    NB["NatCen branch<br/>differences from main"]
+    NB --> J3["J3 NAT IP secret-name override"]:::joe
+    NB --> J4["J4 bucket-name override<br/>(63-char limit)"]:::joe
+    NB --> J5["J5 OTP job paused flag"]:::joe
+    NB --> J1["Model config (J1 / Dan)"]:::joe
+    NB --> OTH["Anything else found<br/>in discovery"]:::joe
+
+    J3 --> MAIN["main"]
+    J4 --> MAIN
+    J5 --> MAIN
+    J1 --> MAIN
+    OTH --> MAIN
+
+    MAIN --> P{"Pipeline plan<br/>for sandbox-ext"}
+    P -->|"all upstreamed"| OK["No changes ✅<br/>safe to wire in apply"]:::ok
+    P -->|"something missing"| BAD["Plan wants to change /<br/>destroy NatCen resources ❌<br/>DO NOT MERGE"]:::risk
+```
+
+### Diagram 4: access the CI/CD SA needs
+
+```mermaid
+flowchart LR
+    classDef change fill:#ffe9a8,stroke:#b8860b,color:#000
+    classDef exist fill:#e8f5e9,stroke:#4caf50,color:#000
+
+    subgraph CICDP["CI/CD project &lt;CICD_PROJECT&gt;"]
+        CB["Cloud Build triggers"]
+        SA["ONS CI/CD SA<br/>(Platform Engineering managed)"]
+    end
+
+    subgraph ENVS["Existing environments"]
+        SBX["sandbox"]:::exist
+        DEV["dev"]:::exist
+        PPR["pre-prod"]:::exist
+    end
+
+    NAT["sandbox-ext<br/>(NatCen)"]
+    STB[("Terraform state bucket<br/>for sandbox-ext<br/>(where? discovery)")]
+
+    CB --> SA
+    SA -->|"already granted"| SBX
+    SA -->|"already granted"| DEV
+    SA -->|"already granted"| PPR
+    SA ==>|"NEW: project-level grant<br/>(same role as other envs)"| NAT:::change
+    SA ==>|"NEW: read/write state"| STB:::change
+```
+
+### Subtasks (one PR each)
+
+| # | Subtask | Where | Done when |
+|---|---|---|---|
+| 1 | **Discovery** (read-only; see checklist below). Fill in the placeholders. | Notes on the ticket | Table below complete. Agreed with Dan where state lives and what's still only on the NatCen branch |
+| 2 | **Upstream the NatCen branch differences** into `main` as no-op PRs: **J3, J4, J5**, model config, anything else from discovery | Terraform repo | A local / manual `terraform plan` of `sandbox-ext` **from `main`** shows **No changes** |
+| 3 | **Grant the CI/CD SA access** to `sandbox-ext` (project-level, same role as other envs) and to its **state bucket**. Give ONS Security / Platform Engineering a heads-up first | CI/CD repo (IAM) or a Platform Engineering request *(confirm)* | `get-iam-policy` shows the binding |
+| 4 | **Add `sandbox-ext` as an environment** in the CI/CD setup: env config / tfvars, backend pointing at the **existing** state | Terraform / CI/CD repo | Config merged. Other envs still plan **No changes** |
+| 5 | **PR trigger: plan** for `sandbox-ext`, output posted on the PR and in Slack | CI/CD repo (Cloud Build triggers) | A test PR shows the NatCen plan on the PR and in Slack |
+| 6 | **Merge trigger: apply** for `sandbox-ext` | CI/CD repo | Merging a no-op PR runs apply with no manual step, result in Slack |
+| 7 | **Retire the manual route**: disable/delete the manual NatCen trigger, update **J7** runbook (which manual steps remain) | CI/CD repo + Confluence | Manual trigger gone. Runbook says "NatCen deploys via PR" |
+
+### Discovery checklist (subtask 1)
+
+| # | Question | How to check |
+|---|---|---|
+| D1 | How are sandbox/dev/pre-prod wired in? | CI/CD repo: `grep -rn "google_cloudbuild_trigger" .` and look at the env folders / tfvars. `gcloud builds triggers list --project=<CICD_PROJECT> --region=<REGION> --format="table(name,filename,substitutions)"` |
+| D2 | **Where is `sandbox-ext`'s Terraform state?** | NatCen branch: the backend config for `sandbox-ext` (`backend.tf` / `-backend-config`). Then `gcloud storage ls gs://<STATE_BUCKET>/` |
+| D3 | What's still only on the NatCen branch? | `git diff main...<natcen-branch> --stat` in the Terraform repo |
+| D4 | Does the CI/CD SA already have access? | `gcloud projects get-iam-policy <SANDBOX_EXT_PROJECT> --flatten="bindings[].members" --filter="bindings.members:<CICD_SA>" --format="table(bindings.role)"`. Compare with the same command on sandbox |
+| D5 | How does the manual trigger work today? | `gcloud builds triggers describe <NATCEN_TRIGGER> --project=<CICD_PROJECT> --region=<REGION>` and the Slack integration |
+| D6 | What would `main` do to NatCen right now? | With Dan: `terraform plan` for `sandbox-ext` from `main` (**plan only**). The diff is your upstreaming list for subtask 2 |
+
+| Discovery output | Value |
+|---|---|
+| `<CICD_PROJECT>` / `<REGION>` | |
+| `<SANDBOX_EXT_PROJECT>` (project ID) | |
+| `<CICD_SA>` | |
+| State bucket + prefix for `sandbox-ext` | |
+| Existing NatCen manual trigger name | |
+| Branch differences still to upstream | |
+| CI/CD SA already has access? | |
+
+### Acceptance criteria
+- [ ] **Given** a PR into `main`, **when** the PR trigger runs, **then** `terraform plan` for `sandbox-ext` runs as the CI/CD SA and its output is posted on the PR and in Slack.
+- [ ] **Given** a no-op PR, **then** the `sandbox-ext` plan shows **No changes**, and sandbox / dev / pre-prod also show **No changes**.
+- [ ] **Given** the PR is merged, **then** `terraform apply` for `sandbox-ext` runs automatically with **no manual step**, and the result is posted in Slack.
+- [ ] The pipeline uses the **existing** `sandbox-ext` state (no resources recreated).
+- [ ] The manual NatCen trigger is removed or disabled.
+- [ ] ONS Security / Platform Engineering were told before the SA grant.
+- [ ] J7 runbook updated with which manual steps remain.
+- [ ] Each change was its own small PR, reviewed by Ethan or Rupert.
+
+### Risks
+
+| Risk | Mitigation |
+|---|---|
+| **Pipeline uses new/empty state** and plans to create everything | Discovery D2 first. Point the backend at the existing state. Never merge while the plan shows creates for existing resources |
+| **`main` lacks NatCen branch changes**, so the first apply reverts NatCen | Subtask 2 before subtasks 5/6. Keep apply off until the plan is clean |
+| **Manual changes in the console** (drift) show up in the first plan | Review the first plan line by line with Dan. Import or codify, don't blindly apply |
+| **Plan/apply runs for all envs on every PR** (slow, noisy) | Agree trigger file filters per env *(open question)* |
+| **Security questions about the over-permissioned SA** | Heads-up before the grant. Point to E4 for least privilege |
+| **NatCen is live for an external partner** | Apply outside NatCen's test windows. Tell NatCen / Dan before the first pipeline apply |
+
+### Out of scope
+- **App image build/deploy for NatCen** (that's **J8** subtask 3).
+- Removing the remaining manual steps themselves (J5, T5 gateway, users.json): tracked separately, listed in **J7**.
+- Least-privilege CI/CD SA (**E4**, later).
+- Moving the test proxy (**T2**).
+
+### Open questions (for Dan)
+1. Where does `sandbox-ext`'s Terraform state live, and was it last applied from the NatCen branch?
+2. Which NatCen branch changes are already in `main`?
+3. Are the CI/CD triggers and the Terraform code in the same repo or separate?
+4. Who makes the SA grant: us via the CI/CD repo, or a Platform Engineering request? Do we tell Security first?
+5. Should the NatCen plan run on every PR, or only when NatCen-related files change?
+6. Who leads: Dan (as agreed 27 Oct) or Joe?
 
 ---
 
