@@ -50,3 +50,26 @@ If you want something shorter:
 > Hi all, here's the outcome of today's infra sync on the NatCen environment: what we agreed, the prioritised tickets, and infrastructure diagrams. Top of the list: adding the NatCen project to the CI/CD repo, moving the test proxy into CI/CD, and building each image once and deploying it everywhere. Thoughts and corrections welcome, especially from @Steve on the Flask secret and the move to GKE 👇
 
 If you paste the whole summary into the channel, its first section (the summary for Matt) is the best part to post.
+
+
+Update
+===========
+=========
+
+I've updated my memory: the classify 422 is fixed by changing the model to Gemini 3.8 Flash, and you've retested it.
+
+Your local copy of `survey-assist-api` still says `gemini-2.5-flash` in `api/main.py`, because it hasn't been pulled since the change. Please double-check the exact model name before sending. I've used "Gemini 3.8 Flash" as you said it.
+
+Written for: your team on Teams, and the Jira ticket.
+
+---
+
+**Teams message:**
+
+> Hi all, quick update on NatCen: the classify 422 is fixed. The API model has been switched from Gemini 2.5 Flash (deprecated) to Gemini 3.8 Flash. I've retested NatCen and classify now returns 200 for both the clear and vague inputs, matching sandbox. ✅
+
+---
+
+**Jira comment:**
+
+> Classify 422 on NatCen resolved. The cause was the deprecated Gemini 2.5 Flash model, now switched to Gemini 3.8 Flash. Retested: classify returns 200 for both clear and vague inputs, and the results match sandbox.
