@@ -9,3 +9,16 @@ The dev pipeline should have started from the merge. I can't check it because my
    It should end in `@sha256:...`.
 
 If the build fails, send me a screenshot. The PR branch is still there if you want to delete it.
+
+
+check
+
+To confirm the digest is the image built from your merge commit:
+
+```
+gcloud artifacts docker images describe europe-west2-docker.pkg.dev/ons-survey-assist-dev/survey-assist-api/survey-assist-api:3ea3975 --format='value(image_summary.digest)'
+```
+
+It should print `sha256:639ee4a2...`. If you get "not found", check the commit SHA on the build page in Cloud Build and use that tag instead.
+
+Next, when you're ready, is a pre-prod promote with a release tag. Check the release digest matches this one.
