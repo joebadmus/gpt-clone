@@ -64,3 +64,7 @@ NatCen was set up by hand. We're putting its Terraform on `main` so the pipeline
 ## Also worth mentioning
 - Before the first pipeline apply, someone has to add a value by hand to the new GKE whitelist secret, `natcen-sandbox-gke-master-whitelist-cidrs`.
 - Next steps: you re-run the plan, raise the PR, then set up the trigger.
+
+
+=====
+Just to clear one thing up, I haven't touched sandbox at all. The NatCen folder still had sandbox's gateway address from when it was copied, so I've changed it to NatCen's own. That's why the config needed a new version, and the gateway stays on your v2 for now. Also, I've only run a plan, nothing applied. I'll check with you before testing anything on NatCen. The questions I sent earlier are still open whenever you've got a minute.
