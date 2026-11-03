@@ -22,3 +22,81 @@ gcloud artifacts docker images describe europe-west2-docker.pkg.dev/ons-survey-a
 It should print `sha256:639ee4a2...`. If you get "not found", check the commit SHA on the build page in Cloud Build and use that tag instead.
 
 Next, when you're ready, is a pre-prod promote with a release tag. Check the release digest matches this one.
+
+
+
+Run these on the machine where the commits are made. That's this one for the PRs I've pushed.
+
+**1. Install GPG**
+```
+brew install gnupg pinentry-mac
+echo "pinentry-program $(brew --prefix)/bin/pinentry-mac" >> ~/.gnupg/gpg-agent.conf
+gpgconf --kill gpg-agent
+```
+
+**2. Create the key**
+```
+gpg --full-generate-key
+```
+Answer the prompts like this:
+- **Kind:** ECC (sign and encrypt), the default
+- **Curve:** Curve 25519, the default
+- **Expiry:** `1y`
+- **Real name:** `Joe Gbadamosi`
+- **Email:** `joe.gbadamosi@ext.ons.gov.uk`. It must match exactly, or GitHub won't verify the commits.
+- **Passphrase:** pick one you'll remember.
+
+**3. Get the key ID**
+```
+gpg --list-secret-keys --keyid-format=long joe.gbadamosi@ext.ons.gov.uk
+```
+On the `sec` line, the ID is the part after the `/`. For example, in `sec ed25519/ABCD1234EF567890`, the ID is `ABCD1234EF567890`.
+
+**4. Copy the public key**
+```
+gpg --armor --export ABCD1234EF567890 | pbcopy
+```
+
+**5. Add it to GitHub**
+1. Log in as **joeg-ons**.
+2. Go to Settings → SSH and GPG keys → New GPG key.
+3. Paste the key and save.
+4. Make sure `joe.gbadamosi@ext.ons.gov.uk` is a **verified** email on that account, under Settings → Emails.
+
+**6. Turn on signing for ONS repos only**
+
+This goes in `~/.gitconfig-ons`, so your personal repos aren't affected:
+```
+git config --file ~/.gitconfig-ons user.signingkey ABCD1234EF567890
+git config --file ~/.gitconfig-ons commit.gpgsign true
+```
+
+**7. Test it**
+```
+cd ~/my_ons.nosync/survey-assist-terraform
+git commit --allow-empty -m "test signing" && git log --show-signature -1
+git reset --hard HEAD~1
+```
+You should see `Good signature from "Joe Gbadamosi <joe.gbadamosi@ext.ons.gov.uk>"`.
+
+Run step 7 on a branch with no unsaved changes, because `git reset --hard` removes the test commit and discards anything you haven't committed.
+
+Once that works, tell me and I'll re-sign the commits on both PRs and force-push.
+
+
+Yes. Every machine you commit from needs a signing key. You can either:
+
+1. **Create a separate key on each machine (recommended):** repeat the same steps on the other machine and add that key to GitHub too. GitHub accepts several GPG keys. If one machine is lost, you only revoke that key.
+2. **Copy this key across:** export it here and import it there:
+   ```
+   gpg --export-secret-keys --armor ABCD1234EF567890 > key.asc
+   ```
+   Then on the other machine:
+   ```
+   gpg --import key.asc
+   ```
+   Delete `key.asc` straight after, because it's your private key.
+
+Whichever you choose, also run step 6 (`user.signingkey` and `commit.gpgsign`) on the other machine, in its ONS git config. If it has no `~/.gitconfig-ons`, use `git config --global`.
+
+
