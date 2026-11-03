@@ -1,0 +1,48 @@
+Yes, the PR is ready for review: all checks pass and it can be merged. The ticket isn't fully done, though, because NatCen only gets paused once its folder is on `main` and I add the one line there.
+
+The dev and pre-prod Terraform plan checks finished as **neutral**. That probably means "No changes", which is what we expect, but open the check details on the PR to confirm.
+
+Those checks are named `ons-survey-assist-dev-terraform-pr` and `ons-survey-assist-preprod-terraform-pr`. They show the plan triggers live in `ons-cicd-surveyassist` and run on every PR. For NatCen we'll need a matching `...-natcen-...-terraform-pr` trigger.
+
+**Message for the team:**
+
+> Hi all, small PR for the OTP cleanup job, adds a pause flag so NatCen's job stays paused when Terraform runs. No changes to other environments. Would appreciate a review when you get a chance: https://github.com/ONSdigital/survey-assist-terraform/pull/182
+
+
+Yes. Run a plan on your ONS machine: first to check the default changes nothing, then with the flag switched on locally to check it would pause the job. Plan only, don't apply.
+
+**1. Get the branch**
+```
+cd survey-assist-terraform
+git fetch
+git switch fix/sa-1129-otp-cleanup-pause-flag
+```
+
+**2. Check nothing changes by default (sandbox)**
+```
+cd survey-assist-sandbox
+gcloud config set project survey-assist-sandbox
+gcloud auth application-default login
+terraform init
+terraform plan -target=module.firestore-otp
+```
+You should get "No changes" for the OTP module.
+
+**3. Check the flag works (local only, don't commit)**
+
+Temporarily add this line inside `module "firestore-otp" { ... }` in `survey-assist-sandbox/services.tf`:
+```
+cloud_run_cli_scheduled_paused = true
+```
+Then run:
+```
+terraform plan -target=module.firestore-otp
+```
+You should see one in-place update, `paused = false -> true`, on `google_cloud_scheduler_job.firestore-otp-cli-scheduled`, with nothing created or destroyed.
+
+**4. Undo the test edit**
+```
+git checkout services.tf
+```
+
+`-target` keeps the plan limited to the OTP module, so it runs quicker. You'll see a warning about `-target`, which is normal. The PR already ran full plans for dev and pre-prod, and they show in the PR checks.
