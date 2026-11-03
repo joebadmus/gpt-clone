@@ -46,3 +46,20 @@ git checkout services.tf
 ```
 
 `-target` keeps the plan limited to the OTP module, so it runs quicker. You'll see a warning about `-target`, which is normal. The PR already ran full plans for dev and pre-prod, and they show in the PR checks.
+
+
+
+**Description**
+The OTP cleanup job errors when there's nothing to delete. It's been paused by hand in every environment, but Terraform doesn't know that, so an apply could switch it back on.
+
+**Acceptance criteria**
+- The OTP cleanup scheduler has a pause setting in Terraform.
+- Sandbox, dev and pre-prod are set to paused.
+- Plans for all three show no changes.
+- NatCen is set to paused once its Terraform is on main.
+
+**Out of scope**
+- Logging a warning instead of an error (app code).
+- Deciding whether the job is still needed.
+
+**PR:** https://github.com/ONSdigital/survey-assist-terraform/pull/182
