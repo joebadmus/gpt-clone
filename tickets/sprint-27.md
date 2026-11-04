@@ -28,3 +28,12 @@ Titles only for now. Details and acceptance criteria come later. Ordered by prio
 - **New from Matt's catch-up:** #3, #5, #7, #8, #12, #13.
 - **New from the repo check:** #6, #11, plus the dev and pre-prod → sandbox link in #3.
 - Trivy is commented out in `.github/workflows/workflow.yml` "at request of security team", so I've left it off the list.
+
+
+Hey Dan, just had my catch-up with Matt. He wants us to agree the infra tickets between us for sprint 27, so I've put together a draft list (attached).
+
+The main things he raised: getting NatCen onto main and through the pipeline so it's just another environment, removing cross-project dependencies (that security email about sandbox talking to prod), and moving to one Artifact Registry in the CI/CD project. I also had a look through the Terraform repo and added a few things I spotted, like :latest image tags and some version drift between environments.
+
+A few of them overlap with yours, like the test proxy move and the NatCen pipeline work, so I've marked those as update rather than new.
+
+Could you have a look when you get a chance? Let me know if you're happy with them or if there's anything you'd change, drop or do in a different order. If it all looks ok, I'll go ahead and raise them in Jira before planning tomorrow.
