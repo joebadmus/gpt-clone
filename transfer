@@ -100,6 +100,11 @@ Yes. Every machine you commit from needs a signing key. You can either:
 Whichever you choose, also run step 6 (`user.signingkey` and `commit.gpgsign`) on the other machine, in its ONS git config. If it has no `~/.gitconfig-ons`, use `git config --global`.
 
 
-for p in survey-assist-sandbox survey-assist-dev survey-assist-preprod survey-assist-sandbox-external; do echo "$p: $(gcloud secrets describe themes_flask_secret_key --project=$p --format='value(name)' 2>&1)"; done
+
+for p in survey-assist-sandbox ons-survey-assist-dev ons-survey-assist-preprod survey-assist-sandbox-external; do
+  echo "== $p"
+  gcloud secrets list --project=$p --filter="name~flask" --format="value(name)" 2>&1 | tail -5
+  gcloud run services list --project=$p --region=europe-west2 --filter="metadata.name~theme" --format="value(metadata.name)" 2>&1 | tail -2
+done
 
 
