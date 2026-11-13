@@ -116,5 +116,14 @@ for p in survey-assist-sandbox ons-survey-assist-dev ons-survey-assist-preprod s
   echo "-- themes-ui uses:"; gcloud run services describe themes-ui --project=$p --region=europe-west2 --format=json 2>&1 | grep -A4 FLASK_SECRET_KEY | grep -E '"(name|key)"'
 done
 
+====
+
+for p in survey-assist-sandbox ons-survey-assist-dev ons-survey-assist-preprod survey-assist-sandbox-external; do
+  echo "== $p"
+  echo "-- themes-ui secret:"; gcloud run services describe themes-ui --project=$p --region=europe-west2 --format="value(spec.template.metadata.annotations['run.googleapis.com/secrets'])" 2>&1
+  echo "-- secrets list:"; gcloud secrets list --project=$p --format="value(name)" 2>&1 | head -15
+done
+
+
 
 
