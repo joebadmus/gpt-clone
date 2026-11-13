@@ -108,3 +108,13 @@ for p in survey-assist-sandbox ons-survey-assist-dev ons-survey-assist-preprod s
 done
 
 
+==
+for p in survey-assist-sandbox ons-survey-assist-dev ons-survey-assist-preprod survey-assist-sandbox-external; do
+  echo "== $p"
+  echo "-- global:";   gcloud secrets list --project=$p --format="value(name)" 2>&1 | grep -i flask
+  echo "-- regional:"; gcloud secrets list --project=$p --location=europe-west2 --format="value(name)" 2>&1 | grep -i flask
+  echo "-- themes-ui uses:"; gcloud run services describe themes-ui --project=$p --region=europe-west2 --format=json 2>&1 | grep -A4 FLASK_SECRET_KEY | grep -E '"(name|key)"'
+done
+
+
+
