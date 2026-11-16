@@ -38,8 +38,10 @@ Written for: Dan, on Teams.
 If he picks promote, I'll switch the API trigger over and give NatCen's Cloud Run read access to the API release registry.
 
 
-grep "^Plan:" natcen.txt
-grep -c "will be destroyed" natcen.txt
-grep -E "google_container_cluster|node_pool" natcen.txt
-grep -B3 "forces replacement" natcen.txt | grep -E "^\s+#|forces" | head -40
+=====
+Hi Dan, I ran a NatCen plan from main: 8 add, 32 change, 18 destroy. Nobody should apply it yet. Three causes:
+
+The environment was renamed from natcen-sandbox to sandbox-external, which renames the UI load balancer IP, cert, URL map, security policy and the infra test config version, and changes labels everywhere. The UIs would get a new IP and cert. The API Gateway isn't touched.
+The network and subnet were renamed (underscores to hyphens) without moved blocks. I can add those so they're not recreated.
+The GKE module is commented out, so its networking gets destroyed. There's no cluster, so I'm guessing it's unused?
 
