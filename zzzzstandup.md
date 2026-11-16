@@ -33,3 +33,8 @@ You have 7 open PRs, newest first:
 | [terraform 189](https://github.com/ONSdigital/survey-assist-terraform/pull/189) | SA-1166 | Optional Gemini model setting for the API | Dan is planning it on dev, then approving |
 
 PR 189 is the one to get merged first, because 190 and 192 both depend on it.
+
+
+gcloud projects get-iam-policy survey-assist-sandbox-external --flatten=bindings --filter="bindings.members:ons-cicd-surveyassist@" --format="value(bindings.role)"
+gcloud storage buckets get-iam-policy gs://survey-assist-natcen-sandbox-external-terraform-remote-backend | grep -B2 ons-cicd-surveyassist
+
