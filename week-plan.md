@@ -21,3 +21,14 @@ plan for the week.
 > - **Decisions.** I need Dan's quick yes on the NatCen deploy approach, and someone to create the Themes secrets.
 
 Today, I'd chase the reviews first. Then get Dan's answer on the deploy approach and run the trigger list command, so the CI/CD work can actually start.
+
+
+
+=====
+Hi all, I have a few small PRs waiting for review if anyone has a moment. They're all low risk, plans are clean and checks pass.
+
+Configurable Vertex AI region (API): lets us choose the Gemini region per environment through an env var. Nothing changes if it isn't set. https://github.com/ONSdigital/survey-assist-api/pull/82
+Gemini model setting (Terraform): lets each environment set its Gemini model in code instead of by hand. https://github.com/ONSdigital/survey-assist-terraform/pull/189
+Vertex AI region setting (Terraform): the same idea for the region. It goes in after the model one. https://github.com/ONSdigital/survey-assist-terraform/pull/190
+NatCen Gemini model (Terraform): sets NatCen's model in code, so an apply doesn't remove it and break its deploy pipeline. It's a draft until the model PR is in. https://github.com/ONSdigital/survey-assist-terraform/pull/192
+Thanks!
