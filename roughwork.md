@@ -1,1 +1,7 @@
-Agreed, makes sense to wait. I'll keep NatCen to plans only until they're done. I've raised a small PR with moved blocks for the network and subnet, so they're kept rather than recreated when we do apply. The plan confirms it, with destroys going from 18 to 16. On dependencies, one I spotted: the plan also removes the API's VPC connection, since GKE is commented out. Probably fine as the vector stores are on Cloud Run, but worth checking before the apply. I'll keep the NatCen app triggers in draft until after testing too. Do you know roughly when NatCen testing finishes?
+Written for: your team at stand-up, spoken or posted.
+
+> **Yesterday:** Got the Gemini model override, the Vertex AI region setting and the NatCen Gemini model merged in Terraform, plus the Terraform version pin, so all environments now use the same version. Ran a NatCen plan and found a big diff from the folder move. Agreed with Dan that NatCen stays plans only until NatCen finish testing. Raised a small PR so the network and subnet are kept, not recreated, when we do apply. Put the NatCen app triggers back in draft until then. Also wrote up the logging catch-up and a ticket list.
+>
+> **Today:** Raising two tech debt tickets, one for build once, promote many and one for a model deprecation alert. Then checking with Dan on who picks up the logging tickets, starting with the NatCen token alert.
+>
+> **Waiting on:** Reviews for the API Vertex AI region change, the NatCen Terraform pipeline and the moved blocks PR. The NatCen app triggers are on hold until NatCen testing finishes.
