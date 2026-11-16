@@ -20,5 +20,16 @@ From this morning's catch-up with Dan, a few things change my earlier notes:
 
 
 NOTE:
+You have 7 open PRs, newest first:
 
-Hi , Matt agreed at refinement on 28 Oct to use the newer Gemini Flash model in NatCen only, as a temporary fix after 2.5 Flash was deprecated. It hasn't been evaluated yet, so it stays in NatCen until data science have looked at it. 3.5 Flash is what Dan set on NatCen already, so this just moves it into Terraform so an apply doesn't remove it. Nothing changes on what's deployed.
+| PR | Ticket | What it does | Status |
+|---|---|---|---|
+| [cicd 128](https://github.com/ONSdigital/survey-assist-cicd/pull/128) | SA-1119 | NatCen app deploy triggers: API and SAYT UI deploy on merge to main, vector stores are run by hand | Needs review. Check the project number and lookup CSVs first |
+| [terraform 194](https://github.com/ONSdigital/survey-assist-terraform/pull/194) | SA-1119 | Pins NatCen and sandbox to Terraform 1.11.0, like dev and preprod | Rupert's change is done. Needs approval |
+| [cicd 127](https://github.com/ONSdigital/survey-assist-cicd/pull/127) | SA-1119 | Adds NatCen to the Terraform pipeline: plan on PR, apply after merge | Needs review |
+| [terraform 192](https://github.com/ONSdigital/survey-assist-terraform/pull/192) | SA-1166 | Sets the NatCen Gemini model (3.5 Flash) in Terraform so an apply doesn't remove it | Draft, waiting on 189. Changelog added |
+| [terraform 190](https://github.com/ONSdigital/survey-assist-terraform/pull/190) | SA-1165 | Optional Vertex AI region setting for the API | Stacked on 189 |
+| [api 82](https://github.com/ONSdigital/survey-assist-api/pull/82) | SA-1165 | API reads the Vertex AI region from an env var, defaulting to europe-west2 | Needs review |
+| [terraform 189](https://github.com/ONSdigital/survey-assist-terraform/pull/189) | SA-1166 | Optional Gemini model setting for the API | Dan is planning it on dev, then approving |
+
+PR 189 is the one to get merged first, because 190 and 192 both depend on it.
