@@ -42,3 +42,11 @@ gcloud storage buckets get-iam-policy gs://survey-assist-natcen-sandbox-external
 What happens after his answer
 
 Hi Dan, quick one on NatCen app deploys. I set them up to build on merge to main, but that builds a separate NatCen image, and the NatCen bucket doesn't have the data files the build needs. We already have a NatCen promote pipeline for the API that deploys the same release image preprod is running, no rebuild and no data needed. Are you happy for NatCen to use that instead? Also, how were the current NatCen images built?
+
+Written for: Dan, on Teams.
+
+> Hi Dan, quick one on NatCen app deploys. I set them up to build on merge to main, but that builds a separate NatCen image, and the NatCen bucket doesn't have the data files the build needs. I've put that PR back to draft for now.
+>
+> We already have a NatCen promote pipeline for the API that deploys the same release image preprod is running, so no rebuild and no data needed. Are you happy for NatCen to use that instead? Also, how were the current NatCen images built?
+
+If he picks promote, I'll switch the API trigger over and give NatCen's Cloud Run read access to the API release registry.
