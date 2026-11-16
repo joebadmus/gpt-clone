@@ -47,3 +47,7 @@ The GKE module is commented out, so its networking gets destroyed. There's no cl
 Are you happy to go ahead with the rename and the GKE cleanup in a quiet window, or would you rather keep the old name? Rupert will see the same diff when he plans the NatCen Gemini PR, so I've given him a heads up.
 
 Also, the deployed infra test config version is still natcen-sandbox, so the NatCen app pipelines won't find their config until the rename is applied. And who's copying the CSVs and vector store data into the NatCen bucket for the app builds?
+
+
+====
+Thanks Rupert. The Gemini model override is merged now, so the NatCen one is ready to plan. Heads up though: the NatCen plan from main currently shows a big diff (renames from when the folder moved into main). It's not from this PR. The Gemini line matches what's already set. I'm sorting the diff out with Dan. Fair point on the single PR, I'll group related changes like this next time. Thanks for merging main in.
