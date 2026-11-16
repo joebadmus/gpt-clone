@@ -41,9 +41,4 @@ gcloud storage buckets get-iam-policy gs://survey-assist-natcen-sandbox-external
 
 What happens after his answer
 
-Promote (my recommendation):
-Switch the PR 128 API trigger to the promote pipeline.
-Give NatCen's Cloud Run read access to the API release registry.
-Remove the SAYT UI and vector store triggers from PR 128 for now. They'd need NatCen promote pipelines in their own repos first.
-He really wants merge to main: then the data does have to be in the NatCen bucket. Ask him where it should come from, either copied from sandbox or pointed at sandbox's copy, before copying anything.
-Meanwhile, I'd turn PR 128 back into a draft so nobody merges it as it stands. Want me to do that?
+Hi Dan, quick one on NatCen app deploys. I set them up to build on merge to main, but that builds a separate NatCen image, and the NatCen bucket doesn't have the data files the build needs. We already have a NatCen promote pipeline for the API that deploys the same release image preprod is running, no rebuild and no data needed. Are you happy for NatCen to use that instead? Also, how were the current NatCen images built?
