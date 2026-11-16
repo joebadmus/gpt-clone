@@ -38,3 +38,12 @@ PR 189 is the one to get merged first, because 190 and 192 both depend on it.
 gcloud projects get-iam-policy survey-assist-sandbox-external --flatten=bindings --filter="bindings.members:ons-cicd-surveyassist@" --format="value(bindings.role)"
 gcloud storage buckets get-iam-policy gs://survey-assist-natcen-sandbox-external-terraform-remote-backend | grep -B2 ons-cicd-surveyassist
 
+
+What happens after his answer
+
+Promote (my recommendation):
+Switch the PR 128 API trigger to the promote pipeline.
+Give NatCen's Cloud Run read access to the API release registry.
+Remove the SAYT UI and vector store triggers from PR 128 for now. They'd need NatCen promote pipelines in their own repos first.
+He really wants merge to main: then the data does have to be in the NatCen bucket. Ask him where it should come from, either copied from sandbox or pointed at sandbox's copy, before copying anything.
+Meanwhile, I'd turn PR 128 back into a draft so nobody merges it as it stands. Want me to do that?
