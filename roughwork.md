@@ -1,16 +1,1 @@
-Yes. One plan on the Jamf machine, so we can prove the moved blocks work before raising the PR. Without it we'd only be assuming they do.
-
-```bash
-git fetch && git checkout fix/sa-1119-natcen-moved-blocks && git pull
-cd survey-assist-sandbox-external
-terraform plan -no-color -lock=false > natcen-moved.txt
-grep "^Plan:" natcen-moved.txt
-grep -E "has moved|survey-assist-vector-stores|survey-assist-api\b" natcen-moved.txt
-```
-
-What I'd expect to see:
-- **16 to destroy** instead of 18.
-- The network and subnet listed as **"has moved"**, not destroyed and created.
-- **Fewer changes**, because the Gemini line is now in main.
-
-A screenshot of those two `grep` outputs is enough.
+Thanks Dan, makes sense. I'll keep NatCen to plans only. I've raised a small PR with moved blocks for the network and subnet, so they're kept rather than recreated when we do apply. The plan confirms it, with destroys going from 18 to 16. One thing for the apply after testing: the plan also removes the API's VPC connection, since GKE is commented out. Probably fine as the vector stores are on Cloud Run, but worth a look on the day. I'll keep the NatCen app triggers in draft until after testing too, since they need the rename applied first. Do you know roughly when NatCen testing finishes?
