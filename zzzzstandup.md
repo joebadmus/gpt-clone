@@ -44,4 +44,6 @@ Hi Dan, I ran a NatCen plan from main: 8 add, 32 change, 18 destroy. Nobody shou
 The environment was renamed from natcen-sandbox to sandbox-external, which renames the UI load balancer IP, cert, URL map, security policy and the infra test config version, and changes labels everywhere. The UIs would get a new IP and cert. The API Gateway isn't touched.
 The network and subnet were renamed (underscores to hyphens) without moved blocks. I can add those so they're not recreated.
 The GKE module is commented out, so its networking gets destroyed. There's no cluster, so I'm guessing it's unused?
+Are you happy to go ahead with the rename and the GKE cleanup in a quiet window, or would you rather keep the old name? Rupert will see the same diff when he plans the NatCen Gemini PR, so I've given him a heads up.
 
+Also, the deployed infra test config version is still natcen-sandbox, so the NatCen app pipelines won't find their config until the rename is applied. And who's copying the CSVs and vector store data into the NatCen bucket for the app builds?
