@@ -56,3 +56,12 @@ CommandException: No URLs matched: gs://ons-ci-binaries/terraform-1.17.2
 ```
 
 You could include the dev link in your message to Dan, so he can see it himself.
+
+
+=====
+=====
+Written for: Dan, on Teams.
+
+> Hi Dan, I've raised the Terraform 1.17.2 PR as a draft. The dev and preprod plan checks fail straight away because terraform-1.17.2 isn't in the ons-ci-binaries bucket ("No URLs matched"). Here's the dev run: https://console.cloud.google.com/cloud-build/builds;region=europe-west2/e460629e-759d-4b44-8c68-a7969b4ed2f6?project=113332539420
+>
+> Could that version be added, or do you know who looks after the bucket? Once it's there I'll rerun the checks.
