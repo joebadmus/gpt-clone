@@ -22,9 +22,37 @@ stand-up and defend if asked.
 - **"Anything blocking you?"** "Only the NatCen testing window. I'm also checking the CI/CD service account has enough access to NatCen for plans to run in the pipeline."
 
 
-SA="serviceAccount:ons-cicd-surveyassist@ons-cicd-surveyassist.iam.gserviceaccount.com"
-for P in ons-survey-assist-dev survey-assist-sandbox-external; do
-  gcloud projects get-iam-policy $P --flatten=bindings --filter="bindings.members:$SA" --format="value(bindings.role)" | sort > /tmp/roles-$P.txt
-done
-diff /tmp/roles-ons-survey-assist-dev.txt /tmp/roles-survey-assist-sandbox-external.txt
+==============
+==============
+That confirms the gap. The pipeline service account is **Owner on dev, but not on NatCen**. The other five roles match. Owner is what lets Terraform read and change everything, so without it NatCen plans in the pipeline would fail. Dan's "same permission level" isn't quite true for NatCen.
 
+There's one more check we can do ourselves first. That comparison only shows roles granted directly on each project. Owner could still be inherited from a folder above NatCen. This shows inherited roles too:
+
+```bash
+gcloud projects get-ancestors-iam-policy survey-assist-sandbox-external --flatten=policy.bindings --filter="policy.bindings.members:ons-cicd-surveyassist@" --format="table(id,type,policy.bindings.role)"
+```
+
+- **If Owner appears** against a folder or organisation, NatCen is fine and nothing's needed.
+- **If it doesn't**, it's a real gap. Granting Owner is sensitive, so it's one for Dan:
+
+> Hi Dan, I compared the CI/CD service account's roles on dev and NatCen. On dev it's Owner, but on NatCen it only has the deploy roles, and it doesn't inherit Owner from a folder either. Without it, NatCen plans in the Terraform pipeline will fail. Could it get the same Owner role on NatCen, or would you prefer narrower roles there?
+
+
+
+=======
+=======
+Yes, it's in the pipeline run, and there are two places to see it.
+
+**1. On the PR, the easiest.** Open https://github.com/ONSdigital/survey-assist-terraform/pull/196, scroll down to the checks, and click **Details** next to `ons-survey-assist-dev-terraform-pr`. The build log there shows the error near the bottom. That's where I read it from.
+
+**2. In Cloud Build, on the Jamf machine.** These are the two failed runs, in the `ons-cicd-surveyassist` project:
+- **Dev:** https://console.cloud.google.com/cloud-build/builds;region=europe-west2/e460629e-759d-4b44-8c68-a7969b4ed2f6?project=113332539420
+- **Preprod:** https://console.cloud.google.com/cloud-build/builds;region=europe-west2/456af1b2-191f-4fab-81be-e73560d463be?project=113332539420
+
+Open one, click the first step (`gcr.io/cloud-builders/gcloud`), and you'll see:
+
+```
+CommandException: No URLs matched: gs://ons-ci-binaries/terraform-1.17.2
+```
+
+You could include the dev link in your message to Dan, so he can see it himself.
