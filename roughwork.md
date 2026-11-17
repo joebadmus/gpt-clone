@@ -20,3 +20,11 @@ stand-up and defend if asked.
 - **"Can't you just apply it?"** "We could, but Dan and I agreed not to risk disrupting NatCen during testing. The plan removes some network resources, and there could be a dependency we haven't spotted."
 - **"What about the app deployments?"** "The NatCen app triggers PR is in draft. It needs that same apply first, plus the data in the NatCen bucket, which Dan's checking."
 - **"Anything blocking you?"** "Only the NatCen testing window. I'm also checking the CI/CD service account has enough access to NatCen for plans to run in the pipeline."
+
+
+SA="serviceAccount:ons-cicd-surveyassist@ons-cicd-surveyassist.iam.gserviceaccount.com"
+for P in ons-survey-assist-dev survey-assist-sandbox-external; do
+  gcloud projects get-iam-policy $P --flatten=bindings --filter="bindings.members:$SA" --format="value(bindings.role)" | sort > /tmp/roles-$P.txt
+done
+diff /tmp/roles-ons-survey-assist-dev.txt /tmp/roles-survey-assist-sandbox-external.txt
+
