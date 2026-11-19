@@ -15,3 +15,33 @@
 **Blockers**
 - The Terraform 1.17.2 binary needs adding to the CI bucket.
 - NatCen applies are on hold until their testing finishes next week.
+
+
+
+
+Thank Ethan, email Platform Engineering, and check what's already in the bucket so you have a fallback. The upgrade isn't urgent, so there's no need to drop to an older version unless it drags on.
+
+**Reply to Ethan:**
+
+> Thanks Ethan, that's really helpful. I'll email Platform Engineering and ask when 1.17.2 is likely to be mirrored. It's not a blocker yet, so I'll hold the PR for now. If it takes a while, I'll move to the latest version that's already in the bucket.
+
+**Email to platform.engineering@ons.gov.uk:**
+
+> Subject: Terraform 1.17.2 in ons-ci-binaries
+>
+> Hi team,
+>
+> I'm on Survey Assist and we're upgrading our pipelines to Terraform 1.17.2. Our Cloud Build plan checks pull the binary from the `ons-ci-binaries` bucket, but 1.17.2 isn't there yet, so the builds fail.
+>
+> Could you let me know if 1.17.2 is on your list to scan and mirror, and roughly when? If there's a request form or process I should use instead, please point me to it.
+>
+> Thanks,
+> Joe
+
+**To find your fallback**, run this on the Jamf machine:
+
+```sh
+gcloud storage ls gs://ons-ci-binaries/ | grep -i terraform
+```
+
+Send me the list and I'll tell you which version to use if we do fall back.
