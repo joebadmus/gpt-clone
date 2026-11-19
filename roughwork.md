@@ -17,31 +17,12 @@
 - NatCen applies are on hold until their testing finishes next week.
 
 
+======
+SA-1119 is mostly done. Two terraform PRs merged on 16–17 Nov: pinning NatCen to Terraform 1.11.0, and the moved blocks for the renamed network. Two PRs are still open in survey-assist-cicd.
 
+- **Terraform pipeline for NatCen** (the main part of the ticket): ready for review, all checks green, mergeable. Nobody has reviewed it yet. We still need to confirm the CI/CD service account has the access it needs on the NatCen project.
+- **NatCen app deploy triggers** (the draft one): you moved it back to draft on 16 Nov. The triggers build a separate NatCen image, which goes against build-once, and the NatCen bucket is missing the data files the builds need. It's waiting on Dan to say whether NatCen should use the promote pipeline instead.
 
-Thank Ethan, email Platform Engineering, and check what's already in the bucket so you have a fallback. The upgrade isn't urgent, so there's no need to drop to an older version unless it drags on.
+Both should stay unmerged until NatCen testing finishes next week. To move it on now, ask Dan to review the pipeline PR and answer the promote question.
 
-**Reply to Ethan:**
-
-> Thanks Ethan, that's really helpful. I'll email Platform Engineering and ask when 1.17.2 is likely to be mirrored. It's not a blocker yet, so I'll hold the PR for now. If it takes a while, I'll move to the latest version that's already in the bucket.
-
-**Email to platform.engineering@ons.gov.uk:**
-
-> Subject: Terraform 1.17.2 in ons-ci-binaries
->
-> Hi team,
->
-> I'm on Survey Assist and we're upgrading our pipelines to Terraform 1.17.2. Our Cloud Build plan checks pull the binary from the `ons-ci-binaries` bucket, but 1.17.2 isn't there yet, so the builds fail.
->
-> Could you let me know if 1.17.2 is on your list to scan and mirror, and roughly when? If there's a request form or process I should use instead, please point me to it.
->
-> Thanks,
-> Joe
-
-**To find your fallback**, run this on the Jamf machine:
-
-```sh
-gcloud storage ls gs://ons-ci-binaries/ | grep -i terraform
-```
-
-Send me the list and I'll tell you which version to use if we do fall back.
+> Hi Dan, when you get a minute, could you review the NatCen Terraform pipeline PR? It's green and ready. Also, for the NatCen app deploys, should they use the promote pipeline, so the same image as preprod with no rebuild, rather than separate triggers? I'll hold both until NatCen testing is done.
