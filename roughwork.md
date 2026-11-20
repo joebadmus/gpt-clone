@@ -1,36 +1,29 @@
-Here are the details to paste into SA-1266:
+Here's your stand-up, ticket by ticket:
 
-**Description**
+> **SA-1241 (VPN IPs on the GKE allow-list)**
+> Added the ONS VPN IPs to the sandbox and preprod allow-lists and applied them. kubectl still fails because Cisco on our Macs inspects the traffic and swaps the certificate. I confirmed that with the certificate issuer. The DNS endpoint works as a workaround. I've raised a ServiceNow request to have the cluster IPs taken out of SSL inspection.
+>
+> **SA-1244 (maintenance exclusion)**
+> Added an optional maintenance exclusion to the GKE module. Agreed with Ethan to test it for two weeks in sandbox first and leave preprod alone for now. This morning the sandbox plan showed the one expected change, preprod showed no changes, and the PR is ready for review. I raised SA-1266 to set the preprod dates once we know when the public test is.
+>
+> **SA-1163 (Terraform 1.17.2)**
+> Still blocked. Ethan pointed me to Platform Engineering, who own the binaries bucket, and I've emailed them.
+>
+> **SA-1235 (NatCen log bucket)**
+> Ticket written and ready to start. It reuses our existing log bucket module. I need Dan to agree the retention period.
+>
+> **SA-1127 (Themes Flask key)** and **SA-1119 (NatCen pipeline)**
+> PRs still waiting on review.
+>
+> **Today**
+> - Start SA-1235.
+> - Apply the sandbox exclusion once SA-1244 is merged.
+> - Chase the reviews.
+> - Raise the NatCen plan drift with Dan.
+>
+> **Blockers**
+> - The Terraform binary from Platform Engineering.
+> - The Cisco SSL bypass.
+> - Reviews on the open PRs.
 
-SA-1244 added an optional maintenance exclusion to the GKE module and tested it in sandbox. Preprod doesn't have one yet, because the public test dates aren't agreed.
-
-Without an exclusion, Google can upgrade the preprod cluster in its daily 2am window. A node upgrade restarts the SAYT pods, and each new pod has to pull a large image and download the embedding model before it can serve. That could slow down or break search-as-you-type during the public test.
-
-This ticket sets the preprod exclusion to cover the public test, as part of the final test preparations.
-
-**Approach**
-
-1. Get the confirmed public test dates. Check whether December's load testing also needs a stable cluster.
-2. In `ons-survey-assist-preprod/vector-stores.tf`, set `gke_maintenance_exclusions` on the GKE module, with a day either side of the test and the `NO_MINOR_OR_NODE_UPGRADES` scope.
-3. Update the preprod changelog and raise a PR. The plan should show one in-place change to the cluster.
-4. Merge. The pipeline applies it to preprod.
-5. Check the exclusion shows in the GKE console (Cluster details, Maintenance exclusions).
-
-**Things to be aware of**
-
-- Google can still apply urgent security fixes during an exclusion.
-- If the test dates move, update them and apply again.
-- Remove the exclusion after the test, so preprod gets upgrades again.
-
-**Definition of done**
-
-- Public test dates confirmed
-- Preprod exclusion set to cover the test, with a day either side
-- Preprod plan shows only the expected in-place change
-- Applied through the pipeline and visible in the GKE console
-- Changelog updated
-- Follow-up noted to remove the exclusion after the test
-
-**Label:** SAYT public test. **Linked to:** SA-1244 (depends on).
-
-I've also updated your local files. SA-1244 now references SA-1266, and the follow-up item is ticked. The draft is renamed to [SA-1266.md](SA-1266.md) with the new title.
+The NatCen drift comes from your ticket notes this morning. Planning NatCen from main would destroy 16 resources, including the GKE cluster, because NatCen was deployed from Dan's original branch. Worth saying out loud at stand-up, so nobody applies NatCen from main.
