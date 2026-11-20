@@ -27,3 +27,21 @@ Here's your stand-up, ticket by ticket:
 > - Reviews on the open PRs.
 
 The NatCen drift comes from your ticket notes this morning. Planning NatCen from main would destroy 16 resources, including the GKE cluster, because NatCen was deployed from Dan's original branch. Worth saying out loud at stand-up, so nobody applies NatCen from main.
+
+
+====
+That makes sense. Here are the seven titles, ready to paste into Jira under SA-962:
+
+1. **Load testing: review last year's setup and agree the approach with Jeff**
+2. **Load testing: build a dashboard for the SAYT UI and its backend services**
+3. **Load testing: prepare sandbox and pre-prod (Cloud Armor, access codes, Gemini quota)**
+4. **Load testing: practice runs in sandbox (baseline, realistic, stress)**
+5. **Load testing: tune Cloud Run and GKE scaling from the sandbox results**
+6. **Load testing: size pre-prod like the public test for the final run**
+7. **Load testing: final run in pre-prod and write up the results**
+
+Two things to do before you create them:
+- **Check ticket 2 with Dan first.** It might overlap with L2 or L5 from the 16 Nov logging plan. If those already exist, link ticket 2 to them, or drop it.
+- **Ticket 5 only applies if the results show problems.** You could create it now as a placeholder, or wait until the sandbox runs are done.
+
+Send me the Jira numbers when you have them and I'll write up each ticket in full.
