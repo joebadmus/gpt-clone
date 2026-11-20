@@ -1,0 +1,47 @@
+# SA-1280: Load testing: final run in pre-prod and write up the results
+
+**Epic:** SA-962 (load testing)
+**Suggested labels:** SAYT public test
+**Assignee:** Joe, with Geoff Henderson if available
+**Depends on:** SA-1279 (pre-prod sized and ready), manual testing in pre-prod finished
+**Related:** SA-1277 (sandbox results to compare against)
+
+## Description
+
+Before the public test, Matt wants a final load test in pre-prod, with the production settings and the release that will go public. It's the final check that the system copes with the expected load.
+
+This ticket runs that test, writes up the results against the agreed limits, and tidies up afterwards.
+
+## Approach
+
+1. Confirm with Steve that manual testing has finished, so the run doesn't affect testers.
+2. Confirm the deployed versions match the Confluence version tracker page, and note them in the results.
+3. Run the realistic scenario: 25 then 50 concurrent users, with think times.
+4. Run the stress scenario: zero think time, ramping up to find the breaking point.
+5. Record the results in the SA-1143 template, as in SA-1277: the Locust reports, dashboard screenshots, errors, and which component failed first.
+6. Write up the results on Confluence:
+   - the setup and versions tested
+   - results against the pass/fail limits
+   - comparison with the sandbox runs
+   - issues found and how they were fixed
+   - any risks left
+   - a recommendation for the public test
+7. Share the write-up with Matt and Steve.
+8. Tidy up:
+   - remove the Locust IP and any Cloud Armor exceptions
+   - scale pre-prod back if agreed in SA-1279
+   - note how many access codes are left or need retiring
+
+## Things to be aware of
+
+- If the run fails the limits, raise follow-up tickets. Agree with Matt whether to re-run before the public test.
+- Don't regenerate access codes in pre-prod without checking, because it wipes the testers' set.
+
+## Definition of done
+
+- [ ] Manual testing confirmed finished before the run
+- [ ] Versions under test recorded
+- [ ] Realistic and stress runs completed in pre-prod with production settings
+- [ ] Write-up on Confluence, with a recommendation, shared with Matt and Steve
+- [ ] Follow-up tickets raised for any issues found
+- [ ] Cloud Armor entries removed and pre-prod scaled back (if agreed)
