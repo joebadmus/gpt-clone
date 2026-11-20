@@ -1,30 +1,36 @@
-I've put the full summary, actions, draft tickets and questions in [2011-Matt.md](meeting/2011-Matt.md).
+Here are the details to paste into SA-1266:
 
-**What Matt wants from you:** you own the infrastructure side of load testing, working with Jeff. That means a dashboard, getting the environment ready, running the tests with Jeff, and making Terraform fixes (like Cloud Run concurrency or scaling) if the results show problems. Jeff moves to other work around the start of December, so it needs to be ready to run before then. The Teams message asks you to raise tickets for this under SA-962.
+**Description**
 
-**The plan Matt set:** first a run in sandbox exactly as it is now, to prove the test and dashboard work. Then tune and run again. Then a final run in pre-prod with production settings before going public. Jeff suggested two kinds of run: a realistic one with about 50 users and pauses between steps, and a stress test with no pauses. Steve's minimum benchmark is 25 users at once.
+SA-1244 added an optional maintenance exclusion to the GKE module and tested it in sandbox. Preprod doesn't have one yet, because the public test dates aren't agreed.
 
-**Seven tickets, at a high level:**
-1. Review last time's load testing setup with Jeff and agree the approach.
-2. A load testing dashboard for the SAYT UI and the services behind it.
-3. Get the environment ready: Cloud Armor allow-list, a separate batch of access codes, and Gemini quota and cost.
-4. Practice runs in sandbox.
-5. Tune the infrastructure from the results (only if needed).
-6. Size pre-prod like the public test.
-7. Final pre-prod run and a write-up.
+Without an exclusion, Google can upgrade the preprod cluster in its daily 2am window. A node upgrade restarts the SAYT pods, and each new pod has to pull a large image and download the embedding model before it can serve. That could slow down or break search-as-you-type during the public test.
 
-**Things you might have missed:**
-- **The dashboard may already be ticketed.** The 16 Nov logging plan has L2 (SAYT UI dashboard, Ethan/Jeff) and L5 (golden signals). Check with Dan before raising ticket 2, so you link to those instead of duplicating them.
-- **Access codes could clash.** Locust uses up a code on every journey. Generating more codes wipes the whole set, which would also wipe the testers' codes in pre-prod. Ask for a separate batch for Locust.
-- **Two items have no clear owner and might land on you:**
-  - Steph or Charlie offered to show "Dan or Joe" how to generate the codes.
-  - Someone offered to run Playwright on pre-prod by Monday or Tuesday.
-- **Cloud Armor:** testers' IPs need adding, and the Locust machine's IP will need it too. Any rate-limiting rules could throttle the load test.
+This ticket sets the preprod exclusion to cover the public test, as part of the final test preparations.
 
-**Questions to ask first:**
-- When does manual testing in pre-prod end? That sets when the final run can happen.
-- What counts as a pass? For example, a p95 latency limit and an error rate at 25 and 50 users.
-- What production settings should pre-prod use, and who approves the cost?
-- Jeff: which PRs need merging, where does Locust run from, and does each journey call Gemini?
+**Approach**
 
-The file has the full list of 14 questions. A few names in the transcript, like "Jerry" and "Jeff", might be misheard, so check them against the invite. Send over anything else you have and we can turn these into full tickets.
+1. Get the confirmed public test dates. Check whether December's load testing also needs a stable cluster.
+2. In `ons-survey-assist-preprod/vector-stores.tf`, set `gke_maintenance_exclusions` on the GKE module, with a day either side of the test and the `NO_MINOR_OR_NODE_UPGRADES` scope.
+3. Update the preprod changelog and raise a PR. The plan should show one in-place change to the cluster.
+4. Merge. The pipeline applies it to preprod.
+5. Check the exclusion shows in the GKE console (Cluster details, Maintenance exclusions).
+
+**Things to be aware of**
+
+- Google can still apply urgent security fixes during an exclusion.
+- If the test dates move, update them and apply again.
+- Remove the exclusion after the test, so preprod gets upgrades again.
+
+**Definition of done**
+
+- Public test dates confirmed
+- Preprod exclusion set to cover the test, with a day either side
+- Preprod plan shows only the expected in-place change
+- Applied through the pipeline and visible in the GKE console
+- Changelog updated
+- Follow-up noted to remove the exclusion after the test
+
+**Label:** SAYT public test. **Linked to:** SA-1244 (depends on).
+
+I've also updated your local files. SA-1244 now references SA-1266, and the follow-up item is ticked. The draft is renamed to [SA-1266.md](SA-1266.md) with the new title.
