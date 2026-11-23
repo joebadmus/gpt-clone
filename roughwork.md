@@ -45,3 +45,23 @@ Two things to do before you create them:
 - **Ticket 5 only applies if the results show problems.** You could create it now as a placeholder, or wait until the sandbox runs are done.
 
 Send me the Jira numbers when you have them and I'll write up each ticket in full.
+
+
+=====
+Here's your stand-up update, ticket by ticket:
+
+**SA-1274, load testing approach:** Call with Geoff at 3 today to go through last year's setup and how to run the Locust suite. I'll aim to leave able to run it myself, and with rough dates for the practice runs and the final pre-prod run.
+
+**SA-1244, GKE maintenance exclusion:** The PR is ready for review. Dates are moved to 25 Nov to 9 Dec, and the plans are clean. Once it's merged, I'll apply sandbox, targeting just the cluster so Dan's WAF changes stay as they are.
+
+**SA-1266, pre-prod exclusion:** I've widened it to cover the final load test as well as the public test. I'll raise the PR once SA-1244 is merged and the load test dates are known.
+
+**SA-1127, Themes Flask key:** PR still waiting on review.
+
+**SA-1163, Terraform 1.17.2:** Still blocked. The 1.17.2 binary isn't in the CI binaries bucket yet, so I need someone with access to upload it.
+
+**SA-1119, NatCen pipeline:** Back in draft. We agreed not to turn on apply-on-merge or apply anything to NatCen until testing is finished.
+
+**Possible new tickets:**
+- The PR plan triggers only watch each environment's folder, so a change that only touches `modules/` never gets planned by the pipeline.
+- Apply the NatCen Terraform after NatCen testing, if that isn't already ticketed.
