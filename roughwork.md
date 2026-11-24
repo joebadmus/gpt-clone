@@ -27,4 +27,10 @@ The merged PR is SA-1141, the employee journey without feedback. Steve approved 
 
 
 ====
-Thanks Geoff, I'll have a read of the page. I've set the suite up and done a quick run against sandbox on main, with 1 user for 5 minutes (screenshot above). No failures, and the vector store pod looked fine in kubectl. Search was the slowest call at around 750 ms, even at one user, so I'll dig into that. I'll add the infra side to the page, like the current sandbox settings against last year's pilot. Happy to run your feedback PR too if that helps.
+Hi Geoff, I've had a read of the page and it's really helpful. The targets look good to me. A few thoughts on Test 1:
+
+Could we run it for 10 minutes instead of 1, so things settle and the vector store has time to scale?
+A spawn rate of 1 to 5 a second might be better than 25, as logging everyone in at once could swamp the OTP service in sandbox.
+With no think time, it's really a stress test, so maybe add a realistic run with think time at 25 and then 50 users.
+We'll need more codes for it, as no-think-time journeys use them quickly.
+Also, I meant I'm happy to run and review your feedback PR, not raise one. 🙂 I'll add the infra bits to the page later today
