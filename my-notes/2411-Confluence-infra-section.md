@@ -68,8 +68,20 @@ We'll note the start and end time, the Locust settings and the image versions fo
 
 
 ====
-"Before the final pre-prod run" is under Results overview. It isn't a result, so move it to the end of Test Plan, after Infrastructure test cases. The "Open points" heading also got lost, so the three questions now read as pre-prod steps. Put the heading back above the Redis, keystroke and pilot settings questions.
-The smoke run sits above Geoff's results table. Move it below his table, so Results overview opens with the Test 1 and Test 2 results. Or add it as a "Smoke" row in his table and keep your table underneath for the detail.
 
 
-Hi Geoff, I've added the infra bits to the load testing page: the environment and monitoring under Setup, the vector store tests under Test Plan, and yesterday's smoke run under Results. Feel free to move anything around. One small thing I noticed: the Test 2 description says a spawn rate of 5, but the config has 1. Which one do you want to go with?
+==
+The page looks good overall. Fix two things before you message Geoff:
+
+1. **"Before the final pre-prod run" is under Results overview.** It isn't a result, so move it to the end of Test Plan, after Infrastructure test cases. The "Open points" heading also got lost, so the three questions now read as pre-prod steps. Put the heading back above the Redis, keystroke and pilot settings questions.
+2. **The smoke run sits above Geoff's results table.** Move it below his table, so Results overview opens with the Test 1 and Test 2 results. Or add it as a "Smoke" row in his table and keep your table underneath for the detail.
+
+Optional: Environment and Monitoring each have one subheading under them, which repeats itself. You could drop "Sandbox setup today…" and "What we watch during each run" and keep the intro text. It's fine either way.
+
+There's also a small mismatch in Geoff's part. The Test 2 description says a spawn rate of 5 users a second, but its config says `spawn-rate = 1`. It's his section, so just mention it in the message.
+
+Here's the message for Geoff:
+
+> Hi Geoff, I've added the infra bits to the load testing page: the environment and monitoring under Setup, the vector store tests under Test Plan, and yesterday's smoke run under Results. Feel free to move anything around. One small thing I noticed: the Test 2 description says a spawn rate of 5, but the config has 1. Which one do you want to go with?
+
+On codes: Test 1 could use about 250 to 300, and Test 2 about 150. So get the new set before Wednesday's run.Results. Feel free to move anything around. One small thing I noticed: the Test 2 description says a spawn rate of 5, but the config has 1. Which one do you want to go with?
