@@ -55,3 +55,29 @@ The last three depend on the parameters call this week with Steve, Matt, Ethan a
 For stand-up, you could say: "SA-1274 is nearly done. I'll close it once we've agreed the parameters this week."
 
 If the team would rather close it now, move the scenarios and limits into SA-1277 so they don't get lost. Keeping it open is cleaner, though.
+
+
+
+=======
+I couldn't confirm which PR merged or what the run showed, because `gh` isn't installed here and there are no notes from this morning yet. I've assumed SA-1141 (the main journey) merged and SA-1142 (feedback) is still in review. I've left a gap for the results, so fill that in.
+
+**Yesterday**
+- Had the load testing handover with Geoff (SA-1274) and went through how the new Locust suite works and what last year's run found.
+- Raised the load testing tickets SA-1275 to SA-1280: the dashboard, preparing the environments, the sandbox practice runs, sizing pre-prod, and the final pre-prod run.
+- Moved the sandbox maintenance exclusion dates on SA-1244 to 25 Nov to 9 Dec. The PR is still waiting for review.
+- Went to the IAM handover session.
+
+**This morning**
+- SA-1141 is merged, so I met Geoff and we ran the first small baseline load test against sandbox. [Add: number of users, how it went, anything that stood out]
+- SA-1142 is still in review, so the feedback part of the journey isn't in the run yet.
+
+**Today**
+- Raise the GKE control plane cert issue with the managed Mac team, from the retro action. It's also blocking Dan's RBAC testing. We're using the DNS endpoint as a stopgap.
+- Set up the load test dashboard and finish the sandbox prep before the first proper run on Wednesday or Thursday. That includes the Redis connection limit Geoff flagged.
+- Chase a review on SA-1244 so the exclusion is in place before the load tests.
+
+**Blockers**
+- SA-1142 needs merging before we can run the full journey with feedback.
+- No load testing in pre-prod this week, because functional testing starts there.
+
+If I've got the wrong PR, or you send me the results from this morning, I'll update it.
