@@ -65,3 +65,11 @@ We'll note the start and end time, the Locust settings and the image versions fo
 - Where does the 32 Redis connection limit come from, and is it per container or per instance?
 - Does the real UI call suggestions on every keystroke? If so, Locust's 5 to 10 searches may under-count.
 - Should we do a run at last year's pilot settings after the first sandbox runs?
+
+
+====
+"Before the final pre-prod run" is under Results overview. It isn't a result, so move it to the end of Test Plan, after Infrastructure test cases. The "Open points" heading also got lost, so the three questions now read as pre-prod steps. Put the heading back above the Redis, keystroke and pilot settings questions.
+The smoke run sits above Geoff's results table. Move it below his table, so Results overview opens with the Test 1 and Test 2 results. Or add it as a "Smoke" row in his table and keep your table underneath for the detail.
+
+
+Hi Geoff, I've added the infra bits to the load testing page: the environment and monitoring under Setup, the vector store tests under Test Plan, and yesterday's smoke run under Results. Feel free to move anything around. One small thing I noticed: the Test 2 description says a spawn rate of 5, but the config has 1. Which one do you want to go with?
