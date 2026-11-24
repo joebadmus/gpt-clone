@@ -1,23 +1,17 @@
-Written for: Matt, as your updated plan for the week.
+Put it in Geoff's page rather than making a new one. He said you could add test cases, and the team will read the results in one place. Split it across his existing sections instead of pasting it as one block:
 
-> **This week**
-> - **NatCen into the Terraform pipeline (SA-1119):** NatCen infra changes go through PR, plan, review and apply, like dev and preprod. The two PRs are raised. Next is a test run.
-> - **NatCen app deploys:** add NatCen triggers so the API, vector stores and SAYT UI deploy to NatCen automatically on merge to main. Most of this is one change in the CI/CD repo, because the existing pipelines already support choosing the target project.
-> - **NatCen infra tests:** add NatCen to the infra test setup.
-> - **Aim:** first automatic NatCen deploy by the end of the week.
->
-> **Also**
-> - Get my 6 open PRs reviewed and merged. Dan is already working through them, and all checks pass.
->
-> **If time allows**
-> - **SA-1127:** give each environment its own Themes key. I have the access to create the secrets.
->
-> **Help needed**
-> - Reviews on the open PRs.
+| My section | Where it goes on Geoff's page |
+|---|---|
+| Sandbox setup vs last year's pilot | Under **Setup**, as a new subheading "Environment" after Test Journey |
+| What we watch during each run | Under **Setup**, after Environment, as "Monitoring" |
+| Infrastructure test cases | Under **Test Plan**, after Test 2, as "Infrastructure tests" |
+| Smoke run, 24 November | Under **Results overview** |
+| Before the final pre-prod run, and Open points | At the end, or as comments to Geoff if he'd rather keep the page tidy |
 
-What changed from your draft:
-- "Dan's approval on the NatCen deploy approach" is gone, because he decided this morning: on merge to main.
-- "Someone with Secret Manager Admin" is gone, because Dan says you have it.
-- "Set up NatCen permissions" is gone, because Dan says the service account already has them. The test run will confirm it.
-- The PR count went from 4 to 6, adding the two SA-1119 PRs.
-- The deploy pipelines line is reworded: it's mostly one change in the CI/CD repo, not separate pipelines per repo.
+If the vector store tests grow into their own results write-up later, move them to a child page under "Load and performance testing" then. A separate page now would just split the plan across two places.
+
+Geoff's page now has Test 1 as 10 minutes at 0 to 3 seconds, and Test 2 as 50 users for 15 minutes, but no Test 3 yet. So I've changed the line in the test cases section so it no longer mentions Tests 1 to 3.
+
+Once you've added it, send him a quick message:
+
+> I've added the infra bits to the page: the environment and monitoring under Setup, the vector store tests under Test Plan, and yesterday's smoke run in the results. Shout if you'd rather have any of it somewhere else.
