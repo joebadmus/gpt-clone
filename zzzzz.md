@@ -46,8 +46,8 @@ Change `~/my_ons.nosync/` to wherever your repos live on the Jamf machine, and p
 
 ```sh
 git config --global includeIf."gitdir:~/my_ons.nosync/".path ~/.gitconfig-ons
-git config --file ~/.gitconfig-ons user.name "Joe Gbadamosi"
-git config --file ~/.gitconfig-ons user.email joe.gbadamosi@ext.ons.gov.uk
+git config --file ~/.gitconfig-ons user.name "Name"
+git config --file ~/.gitconfig-ons user.email <email>
 git config --file ~/.gitconfig-ons user.signingkey <KEY_ID>
 git config --file ~/.gitconfig-ons commit.gpgsign true
 git config --file ~/.gitconfig-ons gpg.program "$(brew --prefix)/bin/gpg"
@@ -80,3 +80,33 @@ Your next real commit pushed from the Jamf machine should show "Verified" on Git
 Two small things:
 - The key expires in a year, like this one. You'll get a reminder to extend it around November 2027.
 - If `pinentry-mac` offers to save the passphrase in Keychain, tick it, or it'll ask on every commit.
+
+
+====
+Your remote is `https://`, so you push with a token and the SSH key isn't needed for pushing. Once GPG signing works, you can delete the SSH key safely.
+
+That last command found nothing, though (the red cross means no matches). So Git in this repo has no signing settings yet, and the step 5 setup isn't being picked up. Your repos live in a `target-repo` folder, not `~/my_ons.nosync/`, so the `includeIf` path from step 5 doesn't match.
+
+The Jamf machine is only used for ONS work, so the simplest fix is to set it globally:
+
+```sh
+git config --global user.name ""
+git config --global user.email 
+git config --global user.signingkey 
+git config --global commit.gpgsign true
+git config --global gpg.program "$(which gpg)"
+git config --global --unset gpg.format
+```
+
+The last line clears any old SSH signing setting. If it errors, there wasn't one, which is fine.
+
+Then check it, still inside `survey-assist-load`:
+
+```sh
+git config --show-origin --get-regexp '^(gpg\.|user\.|commit\.gpgsign)'
+git commit --allow-empty -m "test signing"
+git log -1 --show-signature
+git reset --hard HEAD~1
+```
+
+You should see your ONS email, the key ``, and "Good signature". After that, add the key on GitHub (it's already on your clipboard from the `pbcopy`). Then push a real commit and check it shows Verified before deleting the SSH key.
