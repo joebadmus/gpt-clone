@@ -34,3 +34,24 @@ A spawn rate of 1 to 5 a second might be better than 25, as logging everyone in 
 With no think time, it's really a stress test, so maybe add a realistic run with think time at 25 and then 50 users.
 We'll need more codes for it, as no-think-time journeys use them quickly.
 Also, I meant I'm happy to run and review your feedback PR, not raise one. 🙂 I'll add the infra bits to the page later today
+
+
+=====
+No, not yet. Most of the learning part is done, but the "agree the approach" part isn't, and that's what the ticket is for.
+
+**Done**
+- You've been through last year's material with Geoff.
+- You know where Locust runs from: a laptop on the VPN for sandbox.
+- No Gemini calls are involved, so there's no LLM cost.
+- If you ran this morning's test yourself, you can tick "Joe can run the suite on his own" too.
+
+**Still open**
+- The realistic and stress scenarios aren't agreed yet, including user counts and think times.
+- Pass/fail limits haven't been agreed with Matt and Steve.
+- Geoff's parameters page on Confluence isn't finished or linked from SA-962.
+
+The last three depend on the parameters call this week with Steve, Matt, Ethan and Dan. Close SA-1274 straight after that call, once Geoff's Confluence page has the agreed numbers. That should be before the first proper sandbox run on Wednesday or Thursday.
+
+For stand-up, you could say: "SA-1274 is nearly done. I'll close it once we've agreed the parameters this week."
+
+If the team would rather close it now, move the scenarios and limits into SA-1277 so they don't get lost. Keeping it open is cleaner, though.
