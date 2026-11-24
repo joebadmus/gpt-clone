@@ -24,3 +24,7 @@ The merged PR is SA-1141, the employee journey without feedback. Steve approved 
 **For stand-up:**
 
 > Geoff's first load test PR is merged. I'm setting the suite up locally today and doing a small run against sandbox to check the infra side, while the feedback PR gets reviewed.
+
+
+====
+Thanks Geoff, I'll have a read of the page. I've set the suite up and done a quick run against sandbox on main, with 1 user for 5 minutes (screenshot above). No failures, and the vector store pod looked fine in kubectl. Search was the slowest call at around 750 ms, even at one user, so I'll dig into that. I'll add the infra side to the page, like the current sandbox settings against last year's pilot. Happy to run your feedback PR too if that helps.
