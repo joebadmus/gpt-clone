@@ -162,3 +162,29 @@ The sheet also has:
 **Reply to Geoff** (fill in the time):
 
 > Hi Geoff, sounds good, I'm ready on my side. How about [time]? I'd suggest a quick dry run first, 5 users for 5 minutes, to check everything works end to end, then Test 1 if that's clean. You drive Locust and I'll watch the infra side (Cloud Run, the vector store pods and Cloud Armor) and note the times. Couple of quick ones: how many access codes have you got in the CSV, and what settings did you land on for Test 1? I'll let Dan know the window, as he's making WAF changes in sandbox today.
+
+
+
+======
+3:45 works, and Geoff's plan matches yours. His laptop check now does the job of the dry run, so you can go straight into Test 1 at 3:45.
+
+Two things to raise with him before he makes the codes:
+
+- **Making 1,000 codes wipes the existing sandbox set.** That's the only way the OTP job works. Geoff said some user acceptance testing happens in sandbox, so check nobody's using sandbox codes this afternoon. It's quickest to ask in the dev channel message.
+- **Spawn rate.** He didn't mention one. Ask for about 5 a second, not 25. The OTP service is one instance at concurrency 3, so logging everyone in at once would give you login errors from the burst rather than from real load.
+
+His code maths is fine. 13 seconds per journey is on the fast side, so 490 is close to the most you'd need, and 1,000 leaves plenty spare.
+
+**Reply to Geoff:**
+
+> Sounds good, 10 minutes at 0 to 3 seconds and 1,000 codes works for me. 3:45 is fine. Could we use a spawn rate of about 5 a second? The OTP service is one instance at concurrency 3, so 25 at once might give us login errors that are just from the burst. One thing on the codes: making a new set wipes the existing sandbox ones, so I'll check in the dev channel that nobody's using them for testing today. I'll let Dan know too.
+
+**Dev channel:**
+
+> Heads up, Geoff and I are running a load test against sandbox from 3:45 to about 4:15 today. The SAYT UI and the API might be a bit slow during that time. We're also making a new set of sandbox access codes just before, which will wipe the current ones. Shout if you're using sandbox codes for testing this afternoon.
+
+**Dan:**
+
+> Hi Dan, we're starting the first load test in sandbox at 3:45, for about 10 minutes plus cool down. Could you hold off on WAF changes in sandbox until about 4:15? If anything gets blocked, I'll send you the URLs and rule IDs.
+
+Before 3:45, connect kubectl with `--dns-endpoint`, run the image version commands, and open the dashboard. They're all in [2511-dry-run-plan.md](meeting/2511-dry-run-plan.md).
