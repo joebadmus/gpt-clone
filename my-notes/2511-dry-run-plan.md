@@ -188,3 +188,60 @@ His code maths is fine. 13 seconds per journey is on the fast side, so 490 is cl
 > Hi Dan, we're starting the first load test in sandbox at 3:45, for about 10 minutes plus cool down. Could you hold off on WAF changes in sandbox until about 4:15? If anything gets blocked, I'll send you the URLs and rule IDs.
 
 Before 3:45, connect kubectl with `--dns-endpoint`, run the image version commands, and open the dashboard. They're all in [2511-dry-run-plan.md](meeting/2511-dry-run-plan.md).
+
+
+
+====
+The 504s are almost certainly the external load balancer cutting the request off at 30 seconds. That's the shortest timeout in the chain:
+
+| Hop | Timeout |
+|---|---|
+| Load balancer to SAYT UI | **30 s** |
+| SAYT UI (Cloud Run) | 60 s |
+| API Gateway to the API | 60 s |
+| Survey Assist API (Cloud Run) | 60 s |
+
+So the suggestions calls were queueing for over 30 seconds somewhere behind the UI. That's the path we expected to break first: UI, then API (one instance, 1 CPU), then the vector store (one pod). Page loads and saves were fine, which fits.
+
+This isn't bad news. It's what the test is for. What you need now is which hop is slow. His run was around 15:2x, and the data is already in the logs and on the dashboard. Run these on the Jamf machine:
+
+**1. Confirm it's the load balancer timing out**
+
+```bash
+gcloud logging read 'resource.type="http_load_balancer" AND httpRequest.status=504' \
+  --project=survey-assist-sandbox --freshness=1h --limit=20 \
+  --format='table(timestamp, httpRequest.requestUrl, httpRequest.latency, jsonPayload.statusDetails)'
+```
+
+- If you see `backend_timeout` with latency around 30 s, the load balancer gave up waiting for the UI.
+- If you see `response_sent_by_backend`, the 504 came from further back, either the UI or API Gateway.
+
+**2. See whether the API was slow too**
+
+```bash
+gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="survey-assist-api" AND httpRequest.requestUrl:"suggestions"' \
+  --project=survey-assist-sandbox --freshness=1h --limit=30 \
+  --format='table(timestamp, httpRequest.status, httpRequest.latency)'
+```
+
+**3. Check whether the vector store tried to scale**
+
+```bash
+kubectl describe hpa sayt-vector-store-hpa -n vector-store | tail -15
+kubectl get events -n vector-store --sort-by=.lastTimestamp | tail -20
+```
+
+**4. Look at the dashboard** with the time range set to 15:15 to 15:40. Compare API CPU in the Cloud Run section with vector store CPU in the GKE section.
+
+**How to read it:**
+- **API latency high and vector store CPU pinned:** the single vector store pod is the bottleneck. Check whether the HPA tried for a second pod.
+- **API CPU pinned and vector store CPU low:** the single 1-CPU API instance is the bottleneck.
+- **API latency low but the UI still timed out:** the UI itself is the problem, either its workers or the Redis connections.
+
+I'd still do the 16:00 run. It's the "sandbox as it is" baseline Matt asked for, and this time you'll be watching it live. Just spend 10 minutes on the data above first, so you know what to watch.
+
+**Reply to Geoff:**
+
+> Thanks, that's actually useful. Suggestions was the one we expected to struggle. The load balancer times out at 30 seconds, so those requests were stuck behind the UI for at least that long. I'll check the dashboard and logs for your run now to see whether it's the API or the vector store. Can you share the start time and the spawn rate you used? Still happy to go at 4.
+
+Send me the output and I'll help you read it.
