@@ -1,24 +1,32 @@
-Hi Ethan, Dan, quick one on the dashboards we talked about at the 16 Nov infra sync. I've built a load testing dashboard for SAYT (SA-1275), and the PR is up for review [link]. It's applied to sandbox already.
+I got that wrong. The load balancer didn't time out. The output shows two things:
 
-It's metrics only: load balancer, Cloud Run, the GKE vector store, Redis and Cloud Armor. So it's not the SAYT UI dashboard we said we'd start with. The latency per page and survey progress funnel still need the log analytics queries.
+- **`response_sent_by_backend`:** the SAYT UI itself sent back the 504. The load balancer just passed it on.
+- **Latency of 10 to 13 seconds**, not 30. So the UI waits about 10 seconds for the suggestions call behind it, then gives up and returns a 504. The extra 2 to 3 seconds on some requests is probably them queueing in the UI first.
 
-It does set up the dashboards-as-code bits we discussed, though. There's a dashboards folder in the Terraform repo with templated JSON, and a short README on how to change a dashboard without causing drift. So the SAYT UI dashboard and the others could build on it rather than start from scratch.
+The 10-second limit is most likely the UI's own timeout on its call to the API. It isn't in Terraform, so it's in the app code.
 
-Has a ticket been raised for the SAYT UI dashboard yet? If so, I'll link it to mine.
+There's also a bonus finding in the URLs: `q=sof`, `soft`, `softw`, `softwa`... Locust is calling suggestions on every keystroke, like the real UI. That answers one of the open points on the Confluence page.
 
+The next question is whether the API was slow, or the vector store behind it. Run these two:
 
-**Dashboard (SA-1275):**
-- It's live in sandbox and showing data. The PR is up for review, and the link is on Confluence.
+**API latency for suggestions during the run:**
 
-**GKE exclusion (SA-1244):**
-- It's applied to sandbox and waiting for a review.
+```bash
+gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="survey-assist-api" AND httpRequest.requestUrl:"suggestions"' \
+  --project=survey-assist-sandbox --freshness=1h --limit=30 \
+  --format='table(timestamp, httpRequest.status, httpRequest.latency)'
+```
 
-**Load testing (SA-1274, SA-1276, SA-1277):**
-- I've added the infra bits to Geoff's page, and the smoke run passed.
-- Next, I'm getting more access codes, and we need Geoff's feedback PR merged before Test 1.
+**What the UI logged when it gave up:**
 
-**Reviews:**
-- I've looked at Rupert's vector store pipeline PR. I'll comment once he's finished his changes.
+```bash
+gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="sayt-ui" AND severity>=WARNING' \
+  --project=survey-assist-sandbox --freshness=1h --limit=20 \
+  --format='table(timestamp, severity, textPayload, jsonPayload.message)'
+```
 
-**Asks:**
-- Could someone review the dashboard and GKE exclusion PRs, please?
+**How to read it:**
+- **API latency also around 10 seconds or more:** the slowness is the API or the vector store. Then check vector store CPU on the dashboard for 15:20 to 15:30, and `kubectl describe hpa sayt-vector-store-hpa -n vector-store`.
+- **API latency low:** the time is lost between the UI and the API, either in API Gateway or in the UI itself.
+
+Send me the output and I'll help you read it.
