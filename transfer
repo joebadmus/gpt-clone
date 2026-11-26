@@ -1,5 +1,36 @@
-Hi , have you got 15 minutes today for a quick run? I've got the API change ready (5 instances, lower concurrency), but I want to capture a "before" on the current setup first, so we can show Ethan the difference.
+**What to do now, in order:**
 
-It's a step-up in one run: start at 5 users, then go to 10, 15 and 20 in the Locust UI every 2 minutes. Spawn 2 a second, 0 to 3 second think time. About 10 minutes and roughly 500 codes. I'll watch the infra side and note the times. Then I'll apply the change and we run exactly the same again.
+1. **Lock in a time with Geoff and Ethan,** around 3pm. The message to Geoff earlier only asked for 15 minutes, so send one to both of them.
+2. **Check the access codes first. This is the biggest risk.** At 0 to 3 seconds think time, a journey takes about 13 seconds. So 25 users for 5 minutes could use about 600 codes, and two runs about 1,200. That's more than the 1,000 Geoff made, before counting what 25 November used.
+   - If there aren't enough, Geoff can make a bigger batch for sandbox (that wipes the current sandbox codes).
+   - Or he can switch to the cycling CSV feeder he mentioned in the meeting, so codes can be reused.
+   - Or you run fewer users.
+3. **Set up on the Jamf machine:**
+   - Make sure the scripts are in `~/loadtest`, from the Jamf agent prompt.
+   - Connect kubectl.
+   - Run `./lt-before.sh`.
+   - Open the dashboard.
+   - Have the apply command ready on the `feat/sa-1278-api-scaling` branch.
+4. **Post in the dev channel** before each run.
+5. **Run the baseline, apply, run again.** Fill in the two tables in SA-1277 as you go.
 
-What time suits you?
+**Change from my earlier plan:** use the meeting's version, 25 users flat for 5 minutes, not my step-up. It's what Ethan asked for, and it's directly comparable with 25 November. The step-up can come later.
+
+**What to watch** once the API is at 5:
+- **Vector store CPU should rise.** If it does, the vector store is ruled out, which is what Ethan wants.
+- **The UI could become the next bottleneck.** The meeting said it only allows about 4 users at a time per container, and it runs a single instance.
+- **Any 429s are Cloud Armor rate limiting,** not the app.
+
+**PR reviews** can wait, and don't post to the group today:
+- **Timing log:** Rupert's been asked, and it can't go in before the baseline anyway. Deploy it after both runs.
+- **API scaling:** keep it as a draft. Add today's results, then mark it ready.
+- **Dashboard and SA-1244:** already posted to the group, and Dan said he'd approve SA-1244 after Rupert. Nudge them tomorrow if they're still sitting there.
+- **Also check with Steve** that the API and vector store scaling goes into his ticket as sub-tasks, as he offered.
+
+**To Geoff and Ethan:**
+
+> Hi both, shall we do the sanity check at 3? Baseline on the current setup, 25 users for 5 minutes, then I'll scale the API to 5 instances and we run the same again. Geoff, how many codes have we got left? Two 5-minute runs at 25 users could need around 1,200, so we might need more or the cycling feeder.
+
+**Dev channel** (send before the first run):
+
+> Heads up, we're running load tests against sandbox from about 3pm for half an hour, and scaling the Survey Assist API in between. SAYT and the API may be slow during that time.
