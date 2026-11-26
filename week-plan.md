@@ -55,3 +55,32 @@ In the browser, open the "SAYT load testing (sandbox)" dashboard, set to the las
 12. Send me both summaries. I'll fill in the SA-1277 tables, write the update for Ethan, and add the results to the draft PR.
 
 Geoff owns the codes and the CSV, so you don't need to do anything there. Just check he has enough for two runs.
+
+
+##====
+Here's the table with the internal load balancer command added after each run:
+
+| When | What to run | Terminal |
+|---|---|---|
+| Before the baseline | `./lt-before.sh` (finishes by itself) | 2 |
+| Straight after | `./lt-watch.sh`, left running | 3 |
+| During the baseline | Write down the start time and each 2-minute step | — |
+| Baseline ends | `./lt-summary.sh <start> <end>` | 2 |
+| Straight after | The internal LB command below, with the same start and end | 2 |
+| Apply | `terraform apply -target='module.survey-assist-api.google_cloud_run_v2_service.api-cloud-run-service'` | 1 |
+| After the apply | `./lt-before.sh` again (check concurrency 5), and the dashboard shows 5 API instances | 2 |
+| During run 2 | Write down the start time and each 2-minute step | — |
+| Run 2 ends | `./lt-summary.sh <start> <end>` | 2 |
+| Straight after | The internal LB command, with run 2's start and end | 2 |
+| All done | Ctrl+C on `lt-watch.sh` | 3 |
+
+**The internal LB command.** Change the two times. They're in UTC, which is the same as UK time today:
+
+```bash
+gcloud logging read 'resource.type="internal_http_lb_rule" AND timestamp>="2026-11-26T16:00:00Z" AND timestamp<="2026-11-26T16:08:00Z"' \
+  --project=survey-assist-sandbox --limit=20000 --format='value(httpRequest.latency)' \
+  | sed 's/s$//' | sort -n \
+  | awk '{a[NR]=$1} END{if(!NR){print "no requests"; exit} printf "vector store via internal LB: count=%d p50=%.3fs p95=%.3fs max=%.3fs\n", NR, a[int(NR*0.5)+1], a[int(NR*0.95)+1>NR?NR:int(NR*0.95)+1], a[NR]}'
+```
+
+Compare its p95 with "Suggestions latency at the API" in the summary. If the vector store is around 0.1 seconds and the API is in seconds, the API is the bottleneck.
