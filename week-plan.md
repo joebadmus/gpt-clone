@@ -84,3 +84,35 @@ gcloud logging read 'resource.type="internal_http_lb_rule" AND timestamp>="2026-
 ```
 
 Compare its p95 with "Suggestions latency at the API" in the summary. If the vector store is around 0.1 seconds and the API is in seconds, the API is the bottleneck.
+
+
+#==
+Geoff wants two things from you: the exact changes you applied, and a quick note of how the other services were set up. It wasn't just instances. Concurrency and memory changed too, so it's worth correcting that.
+
+**Reply to Geoff:**
+
+> Thanks Geoff, page looks great. Not just instances, I also dropped concurrency and bumped memory. I'll add the changes now, plus a small table for the other services so we've got the full setup in one place.
+
+**To paste under the infrastructure heading:**
+
+**Changed between run 1 and run 2 (Survey Assist API only, applied at about 16:24)**
+
+| Setting | Run 1 | Run 2 |
+|---|---|---|
+| Min instances | 1 | 5 |
+| Max instances | 1 | 10 |
+| Concurrency per instance | 80 | 5 |
+| Memory | 1Gi | 2Gi |
+| CPU | 1 | 1 (unchanged) |
+
+**Setup for the other services (same in both runs)**
+
+| Service | Setup |
+|---|---|
+| SAYT UI (Cloud Run) | min 1, max 1, concurrency 40, 6 CPU, 4GB |
+| Vector store (GKE) | 1 to 2 pods (scales at 50% CPU), 8 CPU and 32GB per pod |
+| OTP service (Cloud Run) | min 1, max 1, concurrency 3 |
+
+This keeps the documentation light, which was Geoff's worry. For later runs, you only add a row when something changes.
+
+The OTP row is optional. I included it because it's still on 1 instance, which matters if you test a login burst next. The settings come from SA-1278 and the sandbox tfvars, so if anyone has changed them since, give the tfvars a quick check before you paste.
