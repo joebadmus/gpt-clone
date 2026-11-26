@@ -1,17 +1,5 @@
-Hi Ethan, quick one on the SAYT vector store ahead of the next load test.
+Hi , have you got 15 minutes today for a quick run? I've got the API change ready (5 instances, lower concurrency), but I want to capture a "before" on the current setup first, so we can show Ethan the difference.
 
-In Geoff's first sandbox run (25 users), searches were timing out. The UI gave up after about 10 seconds. The API's CPU was low, so it looked like it was waiting on the vector store. But the vector store never scaled, and its CPU only had a small bump.
+It's a step-up in one run: start at 5 users, then go to 10, 15 and 20 in the Locust UI every 2 minutes. Spawn 2 a second, 0 to 3 second think time. About 10 minutes and roughly 500 codes. I'll watch the infra side and note the times. Then I'll apply the change and we run exactly the same again.
 
-Looking at the Helm chart, it runs uvicorn as a single process with no --workers. If the search work is CPU-bound, I think one process can only use about one of the pod's 8 CPUs. That would mean searches queue up while CPU sits around 12%, so the HPA never reaches its 50% trigger. We'll watch the pod CPU live during the next run to confirm.
-
-A few questions:
-
-Is the single process deliberate, or would adding workers be safe? I'm thinking about each one loading its own copy of the model and index. The pod uses about 2 GB of its 32 GB at the moment.
-Was your 22 requests a second with Apache Bench on one process?
-How does the chart get deployed to sandbox, if we wanted to try a change?
-No changes before the next run, just want to have it lined up if it's confirmed.
-
-===
-Hi Ethan, quick one on the SAYT vector store. In Geoff's first sandbox run (25 users), searches were timing out. The UI gave up after about 10 seconds. The API's CPU was low, so it looked like it was waiting on the vector store. But the vector store never scaled, and its CPU only had a small bump.
-
-The Helm chart runs uvicorn as a single process with no --workers, so I think it can only use about one of its 8 CPUs. Is that deliberate, or would adding workers be safe? I'm thinking about each one loading its own copy of the model and index. The pod uses about 2 GB of its 32 GB at the moment.
+What time suits you?
