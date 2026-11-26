@@ -1,17 +1,57 @@
-Put it in Geoff's page rather than making a new one. He said you could add test cases, and the team will read the results in one place. Split it across his existing sections instead of pasting it as one block:
+**Before 4pm (about 3:40)**
 
-| My section | Where it goes on Geoff's page |
-|---|---|
-| Sandbox setup vs last year's pilot | Under **Setup**, as a new subheading "Environment" after Test Journey |
-| What we watch during each run | Under **Setup**, after Environment, as "Monitoring" |
-| Infrastructure test cases | Under **Test Plan**, after Test 2, as "Infrastructure tests" |
-| Smoke run, 24 November | Under **Results overview** |
-| Before the final pre-prod run, and Open points | At the end, or as comments to Geoff if he'd rather keep the page tidy |
+Terminal 1 is for Terraform. Get the branch ready, but don't apply:
 
-If the vector store tests grow into their own results write-up later, move them to a child page under "Load and performance testing" then. A separate page now would just split the plan across two places.
+```bash
+cd <your survey-assist-terraform folder>
+git fetch origin && git switch feat/sa-1278-api-scaling && git pull
+cd survey-assist-sandbox
+terraform plan -target='module.survey-assist-api.google_cloud_run_v2_service.api-cloud-run-service'
+```
 
-Geoff's page now has Test 1 as 10 minutes at 0 to 3 seconds, and Test 2 as 50 users for 15 minutes, but no Test 3 yet. So I've changed the line in the test cases section so it no longer mentions Tests 1 to 3.
+The plan should still say 1 to change. Leave this terminal open.
 
-Once you've added it, send him a quick message:
+Terminal 2 is for the scripts:
 
-> I've added the infra bits to the page: the environment and monitoring under Setup, the vector store tests under Test Plan, and yesterday's smoke run in the results. Shout if you'd rather have any of it somewhere else.
+```bash
+gcloud container clusters get-credentials survey-assist-sandbox-cluster \
+  --region=europe-west2 --project=survey-assist-sandbox --dns-endpoint
+cd ~/loadtest && ./lt-before.sh
+```
+
+The API line should show concurrency 80, and the vector store should be at 1 pod with 0 restarts.
+
+In the browser, open the "SAYT load testing (sandbox)" dashboard, set to the last 30 minutes, with auto-refresh on.
+
+**At 4pm: the baseline run**
+
+1. Post the heads-up in the dev channel.
+2. In terminal 2, run `./lt-watch.sh`.
+3. Tell Geoff to start: 25 users for 5 minutes. Write down the start time.
+4. Watch the live line and the dashboard. Note when 504s appear.
+5. When Geoff stops, write down the end time. Leave `lt-watch.sh` running for a few more minutes, then press Ctrl+C.
+6. Run `./lt-summary.sh 16:00 16:05`, using your actual times. That's your baseline.
+
+**Then apply (about 4:15)**
+
+7. In terminal 1:
+   ```bash
+   terraform apply -target='module.survey-assist-api.google_cloud_run_v2_service.api-cloud-run-service'
+   ```
+   Type `yes` when it asks.
+8. Check it took:
+   - Run the same targeted plan again. It should say "No changes".
+   - In terminal 2, run `./lt-before.sh`. The API line should now show concurrency 5.
+   - On the dashboard, "Instances, by service and state" should show 5 API instances within a couple of minutes.
+
+**The second run (about 4:20)**
+
+9. Run `./lt-watch.sh`, and tell Geoff to run exactly the same test. Write down the times.
+10. Afterwards, run `./lt-summary.sh` for that window.
+
+**After both runs**
+
+11. Compare the two summaries. Look at the 504s, suggestions p95 at the load balancer and at the API, and vector store CPU. Ethan wants to see the vector store CPU rise.
+12. Send me both summaries. I'll fill in the SA-1277 tables, write the update for Ethan, and add the results to the draft PR.
+
+Geoff owns the codes and the CSV, so you don't need to do anything there. Just check he has enough for two runs.
