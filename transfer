@@ -10,3 +10,8 @@ Is the single process deliberate, or would adding workers be safe? I'm thinking 
 Was your 22 requests a second with Apache Bench on one process?
 How does the chart get deployed to sandbox, if we wanted to try a change?
 No changes before the next run, just want to have it lined up if it's confirmed.
+
+===
+Hi Ethan, quick one on the SAYT vector store. In Geoff's first sandbox run (25 users), searches were timing out. The UI gave up after about 10 seconds. The API's CPU was low, so it looked like it was waiting on the vector store. But the vector store never scaled, and its CPU only had a small bump.
+
+The Helm chart runs uvicorn as a single process with no --workers, so I think it can only use about one of its 8 CPUs. Is that deliberate, or would adding workers be safe? I'm thinking about each one loading its own copy of the model and index. The pod uses about 2 GB of its 32 GB at the moment.
