@@ -18,3 +18,21 @@ Here's a stand-up update you can read out or paste:
 
 - Dates for the final pre-prod load test and the public test. SA-1266 and SA-1279 both need them.
 - IT adding the rest of the team to the Cisco group.
+
+
+====
+We changed the API from 1 instance handling up to 80 requests at once, to 5 to 10 instances handling 5 each. One instance can only really work on a handful of requests at a time, so with 80 allowed, searches queued up on that one instance until the UI gave up after 10 seconds. With concurrency at 5, Cloud Run spreads the searches across instances instead of queueing them, so nothing waits long enough to time out.
+
+===
+**Done**
+- **SA-1277 / SA-1278:** The load test rerun after the API change had no failures up to 25 users. The change is merged, so SA-1278 is done.
+- **SA-1244:** The GKE maintenance exclusion is merged and applied in sandbox. Done.
+- **SA-1241:** The Cisco fix works for me. I've asked IT to add the rest of the team.
+
+**Today**
+- **SA-1279:** Agree the pre-prod settings and cost with Matt and Steve.
+- **Timing log:** waiting on Rupert's review, then I'll deploy it to sandbox.
+- **Next load test:** agree it with Geoff and Ethan.
+
+**Need**
+- Dates for the final load test and the public test.
